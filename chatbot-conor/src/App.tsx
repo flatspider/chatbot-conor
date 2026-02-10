@@ -1,43 +1,61 @@
 import { useState } from "react";
 import "./App.css";
 
-function App() {
-  const [message, setMessage] = useState<string>("");
-  const [conversation, setConversation] = useState<string>("");
+type Message = {
+  role: "user" | "assistant";
+  content: string;
+};
 
-  const handleClick = async () => {
-    // Hit the /hello endpoint with message
+function App() {
+  const [input, setInput] = useState("");
+  const [messages, setMessages] = useState<Message[]>([]);
+
+  const handleSend = async () => {
+    // Hit the /chat endpoint with full message history
     // Also feels like the compounded chat should live on the server
     // And lets put in a time management system
     // Also want the tokenizer lab
-    console.log(message);
+    if (!input.trim()) return;
+
+    const userMessage: Message = { role: "user", content: input };
+    const updatedMessages = [...messages, userMessage];
+    setMessages(updatedMessages);
+    setInput("");
+
     const response = await fetch("/chat", {
       method: "POST",
       headers: {
-        Accept: "application/json",
         "Content-Type": "application/json",
       },
-      body: JSON.stringify({ message }),
+      body: JSON.stringify({ messages: updatedMessages }),
     });
     const json = await response.json();
-    setConversation(json.content[0].text);
+    const assistantMessage: Message = {
+      role: "assistant",
+      content: json.content[0].text,
+    };
+    setMessages([...updatedMessages, assistantMessage]);
   };
+
   return (
-    <>
+    <div>
+      <h1>ChatBot</h1>
       <div>
-        <h1>ChatBot</h1>
-        <input
-          value={message}
-          onChange={(e) => {
-            setMessage(e.target.value);
-          }}
-        ></input>
-        <button onClick={handleClick} className="send-button">
-          Send!
-        </button>
+        {messages.map((msg, i) => (
+          <div key={i}>
+            <strong>{msg.role === "user" ? "You" : "Claude"}:</strong>{" "}
+            {msg.content}
+          </div>
+        ))}
       </div>
-      <textarea value={conversation}></textarea>
-    </>
+      <input
+        value={input}
+        onChange={(e) => setInput(e.target.value)}
+        onKeyDown={(e) => e.key === "Enter" && handleSend()}
+        placeholder="Type a message..."
+      />
+      <button onClick={handleSend}>Send</button>
+    </div>
   );
 }
 
