@@ -20,7 +20,7 @@ function App() {
       body: JSON.stringify({ message }),
     });
     const json = await response.json();
-    setConversation(json);
+    setConversation(json.content[0].text);
   };
   return (
     <>
@@ -36,7 +36,7 @@ function App() {
           Send!
         </button>
       </div>
-      <textarea>{conversation}</textarea>
+      <textarea value={conversation}></textarea>
     </>
   );
 }
