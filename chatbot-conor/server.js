@@ -1,6 +1,7 @@
 import express from "express";
 import ViteExpress from "vite-express";
 import dotenv from "dotenv";
+import Anthropic from "@anthropic-ai/sdk";
 
 const PORT = 3000;
 
@@ -40,6 +41,25 @@ app.post("/hello", async (req, res) => {
     }),
   });
   let anthropic_response = await response.json();
+  res.json(anthropic_response);
+});
+
+app.post("/chat", async (req, res) => {
+  const message = req.body.message;
+  const anthropic = new Anthropic();
+
+  const msg = await anthropic.messages.create({
+    model: "claude-haiku-4-5-20251001",
+    max_tokens: 1000,
+    messages: [
+      {
+        role: "user",
+        content: message,
+      },
+    ],
+  });
+  let anthropic_response = await msg;
+
   res.json(anthropic_response);
 });
 

@@ -11,7 +11,7 @@ function App() {
     // And lets put in a time management system
     // Also want the tokenizer lab
     console.log(message);
-    const response = await fetch("/hello", {
+    const response = await fetch("/chat", {
       method: "POST",
       headers: {
         Accept: "application/json",
