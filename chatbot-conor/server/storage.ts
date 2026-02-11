@@ -16,7 +16,7 @@ export type Conversation = {
 }
 
 export interface Storage {
-    createConversation: () => Conversation;
+    createConversation: () => UUID;
     getConversation: (conversationID: UUID) => Conversation | null;
     getConversations: () => Conversation[];
     addMessageToConversations: (message: Message, conversationID: UUID) => void;
@@ -25,13 +25,15 @@ export interface Storage {
 export class InMemoryStorage implements Storage {
     // Creates the private array of convos that these methods can reach into
     private conversations: Conversation[] = []
-    createConversation(): Conversation { 
+    createConversation(): UUID { 
         let convoID = randomUUID();
         let newConversation: Conversation = {
             messages: [],
             conversationID: convoID
         }
-        return newConversation;
+        // This needs to be added to the this.co
+        this.conversations.push(newConversation);
+        return convoID;
     }
     getConversation(convoID: UUID): Conversation | null { 
         let targetConvo = this.conversations.find(convo => convo.conversationID === convoID)
