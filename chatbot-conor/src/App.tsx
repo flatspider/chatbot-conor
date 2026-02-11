@@ -2,12 +2,8 @@ import { useEffect, useRef, useState } from "react";
 import { Coffee, SendHorizontal } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { ShimmerButton } from "@/components/ui/shimmer-button";
+import { type Message } from "../server/server";
 import "./App.css";
-
-type Message = {
-  role: "user" | "assistant";
-  content: string;
-};
 
 // Strips the AI's commands to change the mood or button from the chat history
 function parseCommands(text: string): {
