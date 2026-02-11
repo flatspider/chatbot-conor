@@ -36,3 +36,7 @@ test('add a message', ()=> {
 
     expect(testConvo?.messages.length).toBeGreaterThanOrEqual(1);
 })
+
+test('check null response', () => {
+    expect(testData.getConversation(crypto.randomUUID())).toBe(null);
+})
