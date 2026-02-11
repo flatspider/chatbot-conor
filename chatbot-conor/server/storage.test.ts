@@ -1,42 +1,108 @@
-import {expect, test} from 'vitest';
-import {InMemoryStorage, type Message} from './storage';
+import { expect, test, describe } from 'vitest';
+import { InMemoryStorage, type Message } from './storage';
 
-// Test if create conversation adds to the array
+describe('createConversation', () => {
+    test('adds a conversation to storage', () => {
+        const storage = new InMemoryStorage();
+        storage.createConversation();
+        expect(storage.getConversations()).toHaveLength(1);
+    });
 
-let testData = new InMemoryStorage;
+    test('returns a UUID', () => {
+        const storage = new InMemoryStorage();
+        const id = storage.createConversation();
+        expect(typeof id).toBe('string');
+        expect(id).toHaveLength(36); // UUID format: xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx
+    });
 
-test('create a conversation', ()=>{
-    testData.createConversation();
-    expect(testData.getConversations().length).toBeGreaterThanOrEqual(1);
+    test('creates conversations with unique IDs', () => {
+        const storage = new InMemoryStorage();
+        const id1 = storage.createConversation();
+        const id2 = storage.createConversation();
+        expect(id1).not.toBe(id2);
+    });
 
-    testData.createConversation();
-    let convoArray = testData.getConversations();
-
-    expect(convoArray[0].conversationID !== convoArray[1].conversationID);
+    test('new conversation starts with empty messages', () => {
+        const storage = new InMemoryStorage();
+        const id = storage.createConversation();
+        const convo = storage.getConversation(id);
+        expect(convo?.messages).toEqual([]);
+    });
 });
 
-test('add a message', ()=> {
+describe('getConversation', () => {
+    test('returns the conversation matching the ID', () => {
+        const storage = new InMemoryStorage();
+        const id = storage.createConversation();
+        const convo = storage.getConversation(id);
+        expect(convo).not.toBeNull();
+        expect(convo?.conversationID).toBe(id);
+    });
 
-    let convoArray = testData.getConversations();
-    let testConvoID = convoArray[0].conversationID;
+    test('returns null for a nonexistent ID', () => {
+        const storage = new InMemoryStorage();
+        expect(storage.getConversation(crypto.randomUUID())).toBeNull();
+    });
+});
 
-    // Need a message and convo ID.
-    // Have to specify that user is not just an arbitrary string. 
-    // You have to lock it in for TypeScript. Either role: "user" as const,
-    // Or setting the message as a const. 
-    const testMessage: Message = {
-        content: "Hello my first message",
-        role: "user",
-    }
-    testData.addMessageToConversations(testMessage, testConvoID);
+describe('getConversations', () => {
+    test('returns empty array when no conversations exist', () => {
+        const storage = new InMemoryStorage();
+        expect(storage.getConversations()).toEqual([]);
+    });
 
-    // What am I looking for here? Expects
+    test('returns all created conversations', () => {
+        const storage = new InMemoryStorage();
+        storage.createConversation();
+        storage.createConversation();
+        storage.createConversation();
+        expect(storage.getConversations()).toHaveLength(3);
+    });
+});
 
-    let testConvo = testData.getConversation(testConvoID);
+describe('addMessageToConversations', () => {
+    test('adds a message to the correct conversation', () => {
+        const storage = new InMemoryStorage();
+        const id = storage.createConversation();
+        const msg: Message = { content: "hello", role: "user" };
 
-    expect(testConvo?.messages.length).toBeGreaterThanOrEqual(1);
-})
+        storage.addMessageToConversations(msg, id);
 
-test('check null response', () => {
-    expect(testData.getConversation(crypto.randomUUID())).toBe(null);
-})
+        const convo = storage.getConversation(id);
+        expect(convo?.messages).toHaveLength(1);
+        expect(convo?.messages[0].content).toBe("hello");
+        expect(convo?.messages[0].role).toBe("user");
+    });
+
+    test('adds multiple messages in order', () => {
+        const storage = new InMemoryStorage();
+        const id = storage.createConversation();
+
+        storage.addMessageToConversations({ content: "hi", role: "user" }, id);
+        storage.addMessageToConversations({ content: "hello!", role: "assistant" }, id);
+
+        const convo = storage.getConversation(id);
+        expect(convo?.messages).toHaveLength(2);
+        expect(convo?.messages[0].role).toBe("user");
+        expect(convo?.messages[1].role).toBe("assistant");
+    });
+
+    test('does not add message to other conversations', () => {
+        const storage = new InMemoryStorage();
+        const id1 = storage.createConversation();
+        const id2 = storage.createConversation();
+
+        storage.addMessageToConversations({ content: "hi", role: "user" }, id1);
+
+        expect(storage.getConversation(id1)?.messages).toHaveLength(1);
+        expect(storage.getConversation(id2)?.messages).toHaveLength(0);
+    });
+
+    test('silently does nothing for a nonexistent conversation ID', () => {
+        const storage = new InMemoryStorage();
+        const fakeID = crypto.randomUUID();
+        // Should not throw
+        storage.addMessageToConversations({ content: "hi", role: "user" }, fakeID);
+        expect(storage.getConversations()).toHaveLength(0);
+    });
+});
