@@ -62,7 +62,23 @@ app.post("/chat", async (req, res) => {
   res.json(response);
 });
 
-// The updated endpoint is going to be sending specific conversations
+// Creates convo and returns single valid UUID
+app.post("/createconversation", (req,res)=>{
+  let response = conversationStorage.createConversation();
+  res.json(response);
+});
+
+// Returns all conversations in array
+app.get("/getconversations", (req,res)=>{
+  let response = conversationStorage.getConversations();
+  res.json(response);
+})
+
+app.get("/conversation/:id", (req,res)=> {
+  let targetID = req.params.id;
+  let response = conversationStorage.getConversation(targetID);
+  res.json(response);
+})
 
 app.post("/convos/:id/messages", async (req,res) => {
   // I probably expect my messages to be a Conversation type
