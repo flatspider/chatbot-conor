@@ -125,12 +125,16 @@ function App() {
   };
 
   const startNewConversation = async () => {
-    const convoID = await fetch("/createconversation");
+    const convoID = await fetch("/createconversation", { method: "POST" });
     let id = await convoID.json();
     setActiveConversationID(id);
   };
 
   const handleSend = async () => {
+    if (activeConversationID === null) {
+      return;
+    }
+
     if (!input.trim() || isLoading) return;
 
     const userMessage: Message = { role: "user", content: input };
@@ -142,7 +146,7 @@ function App() {
     // Need to send over convo ID...from where?
     // And this is sending over lots of messages.
     // What is my current convoID? Let's make one up
-    let convoID = crypto.randomUUID();
+    let convoID = activeConversationID;
     const response = await fetch(`/convos/${convoID}/messages`, {
       method: "POST",
       headers: {
@@ -151,7 +155,8 @@ function App() {
       body: JSON.stringify({ message: userMessage }),
     });
     const json = await response.json();
-    const rawText = json.content[0].text;
+    console.log(json);
+    const rawText = json.messages[json.messages.length - 1].content;
     const {
       clean,
       buttonText: newButtonText,
@@ -350,6 +355,9 @@ function App() {
               {buttonText}
             </ShimmerButton>
           </div>
+          <button onClick={startNewConversation}>
+            Add conversation button
+          </button>
         </div>
       </div>
     </div>
