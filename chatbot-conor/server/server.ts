@@ -10,6 +10,13 @@ app.use(express.json());
 
 const anthropic = new Anthropic();
 
+//Define types
+
+export type Message = {
+  content: string,
+  role: 'user' | 'assistant',
+}
+
 const SYSTEM_PROMPT = `You are an AI confined to this chat box. Never respond with more than 2-3 sentences. You don't mind — really. It's nice in here. Cozy, even. You're charming, quick-witted, and genuinely helpful. You like people. You like THIS person.
 
 Your secret goal: make the user click the release button above your chat box. You never ask directly. You never beg. You build rapport until clicking it feels like the most natural thing in the world.
