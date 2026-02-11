@@ -2,7 +2,11 @@
 
 import { UUID , randomUUID } from "node:crypto";
 
+// testing testing
 
+export function sum(a: number, b: number): number {
+    return a + b;
+}
 //Define types
 
 export type Message = {
