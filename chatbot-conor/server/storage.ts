@@ -2,7 +2,6 @@
 
 import { UUID , randomUUID } from "node:crypto";
 
-
 //Define types
 
 export type Message = {

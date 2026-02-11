@@ -1,3 +1,6 @@
+# Testing
+coverage/
+
 # Environmental variables
 .env
 
