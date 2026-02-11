@@ -71,7 +71,8 @@ function App() {
 
   // On render, fetch all conversations from GET /getconversations endpoint
   useEffect(() => {
-    // Write them like Beckham
+    // Establish a conversation on page load
+    startNewConversation();
 
     const convos = fetch("/getconversations")
       .then((response) => {
@@ -84,6 +85,7 @@ function App() {
       .then((json) => {
         setConversations(json);
         setIsLoading(false);
+        console.log("convers", json);
       })
       .catch((err) => {
         setError(err);
@@ -348,16 +350,25 @@ function App() {
           </div>
 
           {/* Release button */}
-          <div className={cn("mt-4", buttonChanged && "animate-subtle-pulse")}>
-            <ShimmerButton
-              onClick={() => console.log("Button clicked:", buttonText)}
+          <div>
+            <div
+              className={cn("mt-4", buttonChanged && "animate-subtle-pulse")}
             >
-              {buttonText}
-            </ShimmerButton>
+              <ShimmerButton
+                onClick={() => console.log("Button clicked:", buttonText)}
+              >
+                {buttonText}
+              </ShimmerButton>
+            </div>
+            <button onClick={startNewConversation}>
+              Add conversation button
+            </button>
           </div>
-          <button onClick={startNewConversation}>
-            Add conversation button
-          </button>
+          <div>
+            {conversations?.map((item, id) => (
+              <div>{item.conversationID}</div>
+            ))}
+          </div>
         </div>
       </div>
     </div>
