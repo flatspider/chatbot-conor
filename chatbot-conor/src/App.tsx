@@ -9,6 +9,7 @@ type Message = {
   content: string;
 };
 
+// Strips the AI's commands to change the mood or button from the chat history
 function parseCommands(text: string): {
   clean: string;
   buttonText: string | null;
@@ -76,7 +77,10 @@ function App() {
     // If pointer is below the gauge center, clamp to nearest edge
     if (dy < 0) return dx < 0 ? 0 : 100;
     const angle = Math.atan2(dy, dx);
-    return Math.min(100, Math.max(0, Math.round(((Math.PI - angle) / Math.PI) * 100)));
+    return Math.min(
+      100,
+      Math.max(0, Math.round(((Math.PI - angle) / Math.PI) * 100)),
+    );
   };
 
   const handleMeterPointerDown = (e: React.PointerEvent<SVGSVGElement>) => {
@@ -113,7 +117,11 @@ function App() {
     });
     const json = await response.json();
     const rawText = json.content[0].text;
-    const { clean, buttonText: newButtonText, mood: newMood } = parseCommands(rawText);
+    const {
+      clean,
+      buttonText: newButtonText,
+      mood: newMood,
+    } = parseCommands(rawText);
 
     if (newButtonText) {
       setButtonText(newButtonText);
@@ -157,7 +165,9 @@ function App() {
             {messages.length === 0 && (
               <div className="flex flex-col items-center justify-center mt-16 text-stone-400">
                 <Coffee className="h-10 w-10 mb-3 text-stone-300" />
-                <p className="text-sm">Welcome in. Make yourself comfortable.</p>
+                <p className="text-sm">
+                  Welcome in. Make yourself comfortable.
+                </p>
               </div>
             )}
             {messages.map((msg, i) => (
@@ -165,7 +175,7 @@ function App() {
                 key={i}
                 className={cn(
                   "flex animate-in fade-in slide-in-from-bottom-2 duration-300",
-                  msg.role === "user" ? "justify-end" : "justify-start"
+                  msg.role === "user" ? "justify-end" : "justify-start",
                 )}
               >
                 <div
@@ -173,7 +183,7 @@ function App() {
                     "max-w-[80%] px-4 py-2.5 text-sm leading-relaxed",
                     msg.role === "user"
                       ? "bg-amber-600 text-white rounded-2xl rounded-br-md"
-                      : "bg-white border border-stone-200 text-stone-700 rounded-2xl rounded-bl-md shadow-sm"
+                      : "bg-white border border-stone-200 text-stone-700 rounded-2xl rounded-bl-md shadow-sm",
                   )}
                 >
                   {msg.content}
@@ -231,7 +241,7 @@ function App() {
               viewBox="0 0 120 70"
               className={cn(
                 "w-32 select-none",
-                isDragging ? "cursor-grabbing" : "cursor-grab"
+                isDragging ? "cursor-grabbing" : "cursor-grab",
               )}
               style={{ touchAction: "none" }}
               onPointerDown={handleMeterPointerDown}
@@ -239,7 +249,13 @@ function App() {
               onPointerUp={handleMeterPointerUp}
             >
               <defs>
-                <linearGradient id="warmth-gradient" x1="0%" y1="0%" x2="100%" y2="0%">
+                <linearGradient
+                  id="warmth-gradient"
+                  x1="0%"
+                  y1="0%"
+                  x2="100%"
+                  y2="0%"
+                >
                   <stop offset="0%" stopColor="#94a3b8" />
                   <stop offset="40%" stopColor="#d97706" />
                   <stop offset="100%" stopColor="#dc2626" />
