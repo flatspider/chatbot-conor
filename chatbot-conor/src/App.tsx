@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { Coffee, SendHorizontal } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { ShimmerButton } from "@/components/ui/shimmer-button";
-import { type Message } from "../server/server";
+import { type Message, type Conversation } from "../server/storage";
 import "./App.css";
 
 // Strips the AI's commands to change the mood or button from the chat history
@@ -41,6 +41,13 @@ function getMoodLabel(value: number): string {
 function App() {
   const [input, setInput] = useState("");
   const [messages, setMessages] = useState<Message[]>([]);
+  const [conversations, setConversations] = useState<Conversation[] | null>(
+    null,
+  );
+  const [activeConversationID, setActiveConversationID] = useState<
+    string | null
+  >(null);
+  const [error, setError] = useState(null);
   const [buttonText, setButtonText] = useState("Feeling cozy");
   const [buttonChanged, setButtonChanged] = useState(false);
   const [mood, setMood] = useState(25);
@@ -61,6 +68,28 @@ function App() {
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages, isLoading]);
+
+  // On render, fetch all conversations from GET /getconversations endpoint
+  useEffect(() => {
+    // Write them like Beckham
+
+    const convos = fetch("/getconversations")
+      .then((response) => {
+        if (!response.ok) {
+          throw new Error(`No conversations`);
+        } else {
+          return response.json();
+        }
+      })
+      .then((json) => {
+        setConversations(json);
+        setIsLoading(false);
+      })
+      .catch((err) => {
+        setError(err);
+        setIsLoading(false);
+      });
+  }, []);
 
   const getMoodFromPointer = (clientX: number, clientY: number): number => {
     if (!meterSvgRef.current) return mood;
@@ -95,6 +124,10 @@ function App() {
     setDragMood(null); // springs back to Claude's mood value
   };
 
+  const startNewConversation = async () => {
+    //const convoID = await
+  };
+
   const handleSend = async () => {
     if (!input.trim() || isLoading) return;
 
@@ -104,12 +137,16 @@ function App() {
     setInput("");
     setIsLoading(true);
 
-    const response = await fetch("/chat", {
+    // Need to send over convo ID...from where?
+    // And this is sending over lots of messages.
+    // What is my current convoID? Let's make one up
+    let convoID = crypto.randomUUID();
+    const response = await fetch(`/convos/${convoID}/messages`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
       },
-      body: JSON.stringify({ messages: updatedMessages }),
+      body: JSON.stringify({ message: userMessage }),
     });
     const json = await response.json();
     const rawText = json.content[0].text;

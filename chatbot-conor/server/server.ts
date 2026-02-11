@@ -75,7 +75,7 @@ app.get("/getconversations", (req,res)=>{
 })
 
 app.get("/conversation/:id", (req,res)=> {
-  let targetID = req.params.id;
+  let targetID = req.params.id as UUID;
   let response = conversationStorage.getConversation(targetID);
   res.json(response);
 })
