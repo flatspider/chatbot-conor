@@ -125,7 +125,9 @@ function App() {
   };
 
   const startNewConversation = async () => {
-    //const convoID = await
+    const convoID = await fetch("/createconversation");
+    let id = await convoID.json();
+    setActiveConversationID(id);
   };
 
   const handleSend = async () => {
