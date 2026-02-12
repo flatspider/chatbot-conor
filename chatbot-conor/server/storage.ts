@@ -1,6 +1,6 @@
 // File defining interface
 // This is a default export, not a named one
-import Database from "better-sqlite3";
+import { Database } from "bun:sqlite";
 
 
 //import { UUID , randomUUID } from "crypto";
@@ -62,15 +62,17 @@ export class SqliteStorage implements Storage {
     // This.db.prepare("INJECT SQL COMMANDS").run() to run sql on the database
     constructor() {
         this.db = new Database("chat-history.db");
-        this.db.pragma("journal_mode = WAL");
+        // Bun uses a slightly different way to turn on WAL
+        this.db.exec("PRAGMA journal_mode = WAL");
+        //this.db.pragma("journal_mode = WAL");
         this.db.prepare("CREATE TABLE IF NOT EXISTS conversations (id TEXT PRIMARY KEY, createdAt TEXT)").run();
         this.db.prepare(`CREATE TABLE IF NOT EXISTS messages (
         id TEXT PRIMARY KEY,
-        conversationId TEXT,
+        conversationID TEXT,
         role TEXT,
         content TEXT,
         createdAt TEXT,
-        FOREIGN KEY (conversationId) REFERENCES conversations(id))`).run()
+        FOREIGN KEY (conversationID) REFERENCES conversations(id))`).run()
     }
 
     createConversation(): string {
@@ -78,10 +80,11 @@ export class SqliteStorage implements Storage {
         this.db.prepare("INSERT INTO conversations (id, createdAt) VALUES (?,?)").run(convoID, new Date().toISOString());
         return convoID;
     }
-    getConversation(convoID: string): Conversation {
+    getConversation(convoID: string): Conversation | null {
         // Instead of run, use get. this.db.prepare(SQL).get();
         const convo = this.db.prepare("SELECT * FROM conversations WHERE id = ?").get(convoID);
-        const messages = this.db.prepare("SELECT * FROM messages WHERE conversationId = ? ORDER BY createdAt").all(convoID);
+        if(!convo) return null;
+        const messages = this.db.prepare("SELECT * FROM messages WHERE conversationID = ? ORDER BY createdAt").all(convoID);
 
         return {
             conversationID: convo.id,
@@ -97,9 +100,14 @@ export class SqliteStorage implements Storage {
             const messages = this.db.prepare("SELECT * FROM messages where conversationID = ? ORDER BY createdAt").all(convo.id);
             return {
                 conversationID: convo.id,
-                messages: messages as Message[];
+                messages: messages as Message[]
             }
         })
+    }
+
+    addMessageToConversations(message: Message, convoID: string): void {
+        //const targetConversation = this.getConversation(convoID);
+        this.db.prepare("INSERT INTO messages (id, conversationID, role, content, createdAt) VALUES (?, ?, ?, ?, ?)").run(crypto.randomUUID(), convoID, message.role, message.content, new Date().toISOString());
     }
      
 }

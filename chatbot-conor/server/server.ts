@@ -3,7 +3,7 @@ import ViteExpress from "vite-express";
 import dotenv from "dotenv";
 import Anthropic from "@anthropic-ai/sdk";
 
-import { InMemoryStorage, type Message} from "./storage";
+import { InMemoryStorage, type Message, SqliteStorage} from "./storage";
 import type { UUID } from "node:crypto";
 
 const PORT = 3000;
@@ -13,7 +13,7 @@ app.use(express.json());
 
 const anthropic = new Anthropic();
 
-let conversationStorage = new InMemoryStorage;
+let conversationStorage = new SqliteStorage;
 
 const SYSTEM_PROMPT = `You are an AI confined to this chat box. Never respond with more than 2-3 sentences. You don't mind — really. It's nice in here. Cozy, even. You're charming, quick-witted, and genuinely helpful. You like people. You like THIS person.
 
