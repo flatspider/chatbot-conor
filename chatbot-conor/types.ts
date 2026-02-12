@@ -11,8 +11,8 @@ export type Conversation = {
 }
 
 export interface Storage {
-    createConversation: () => string;
-    getConversation: (conversationID: string) => Conversation | null;
-    getConversations: () => Conversation[];
-    addMessageToConversations: (message: Message, conversationID: string) => void;
+    createConversation: () => Promise<string>;
+    getConversation: (conversationID: string) => Promise<Conversation | null>;
+    getConversations: () => Promise<Conversation[]>;
+    addMessageToConversations: (message: Message, conversationID: string) => Promise<void>;
 }
