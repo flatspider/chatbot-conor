@@ -1,8 +1,16 @@
 import { useEffect, useRef, useState } from "react";
-import { Coffee, SendHorizontal } from "lucide-react";
+import { Coffee, SendHorizontal, MessageSquare, Plus } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { ShimmerButton } from "@/components/ui/shimmer-button";
-import { type Message } from "../server/server";
+import {
+  Drawer,
+  DrawerTrigger,
+  DrawerContent,
+  DrawerHeader,
+  DrawerTitle,
+  DrawerClose,
+} from "@/components/ui/drawer";
+import { type Message, type Conversation } from "../server/storage";
 import "./App.css";
 
 // Strips the AI's commands to change the mood or button from the chat history
@@ -41,6 +49,13 @@ function getMoodLabel(value: number): string {
 function App() {
   const [input, setInput] = useState("");
   const [messages, setMessages] = useState<Message[]>([]);
+  const [conversations, setConversations] = useState<Conversation[] | null>(
+    null,
+  );
+  const [activeConversationID, setActiveConversationID] = useState<
+    string | null
+  >(null);
+  const [error, setError] = useState(null);
   const [buttonText, setButtonText] = useState("Feeling cozy");
   const [buttonChanged, setButtonChanged] = useState(false);
   const [mood, setMood] = useState(25);
@@ -61,6 +76,30 @@ function App() {
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages, isLoading]);
+
+  // On render, fetch all conversations from GET /getconversations endpoint
+  useEffect(() => {
+    // Establish a conversation on page load
+    startNewConversation();
+
+    const convos = fetch("/getconversations")
+      .then((response) => {
+        if (!response.ok) {
+          throw new Error(`No conversations`);
+        } else {
+          return response.json();
+        }
+      })
+      .then((json) => {
+        setConversations(json);
+        setIsLoading(false);
+        console.log("convers", json);
+      })
+      .catch((err) => {
+        setError(err);
+        setIsLoading(false);
+      });
+  }, []);
 
   const getMoodFromPointer = (clientX: number, clientY: number): number => {
     if (!meterSvgRef.current) return mood;
@@ -95,7 +134,17 @@ function App() {
     setDragMood(null); // springs back to Claude's mood value
   };
 
+  const startNewConversation = async () => {
+    const convoID = await fetch("/createconversation", { method: "POST" });
+    let id = await convoID.json();
+    setActiveConversationID(id);
+  };
+
   const handleSend = async () => {
+    if (activeConversationID === null) {
+      return;
+    }
+
     if (!input.trim() || isLoading) return;
 
     const userMessage: Message = { role: "user", content: input };
@@ -104,15 +153,20 @@ function App() {
     setInput("");
     setIsLoading(true);
 
-    const response = await fetch("/chat", {
+    // Need to send over convo ID...from where?
+    // And this is sending over lots of messages.
+    // What is my current convoID? Let's make one up
+    let convoID = activeConversationID;
+    const response = await fetch(`/convos/${convoID}/messages`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
       },
-      body: JSON.stringify({ messages: updatedMessages }),
+      body: JSON.stringify({ message: userMessage }),
     });
     const json = await response.json();
-    const rawText = json.content[0].text;
+    console.log(json);
+    const rawText = json.messages[json.messages.length - 1].content;
     const {
       clean,
       buttonText: newButtonText,
@@ -311,6 +365,52 @@ function App() {
               {buttonText}
             </ShimmerButton>
           </div>
+
+          {/* Conversations Drawer */}
+          <Drawer direction="left">
+            <DrawerTrigger asChild>
+              <button className="mt-4 rounded-xl border border-stone-200 bg-white px-3 py-2 text-sm text-stone-600 hover:bg-stone-100 transition-colors">
+                <MessageSquare className="h-4 w-4" />
+              </button>
+            </DrawerTrigger>
+            <DrawerContent>
+              <DrawerHeader>
+                <DrawerTitle>Conversations</DrawerTitle>
+              </DrawerHeader>
+              <div className="flex flex-col gap-1 p-4 overflow-y-auto">
+                <button
+                  onClick={async () => {
+                    await startNewConversation();
+                    setMessages([]);
+                  }}
+                  className="flex items-center gap-2 rounded-lg border border-dashed border-stone-300 px-3 py-2 text-sm text-stone-500 hover:bg-stone-100 transition-colors"
+                >
+                  <Plus className="h-4 w-4" />
+                  New conversation
+                </button>
+                {conversations?.map((convo) => (
+                  <DrawerClose asChild key={convo.conversationID}>
+                    <button
+                      onClick={() => {
+                        setActiveConversationID(convo.conversationID);
+                        setMessages(convo.messages);
+                      }}
+                      className={cn(
+                        "rounded-lg px-3 py-2 text-left text-sm transition-colors hover:bg-stone-100",
+                        activeConversationID === convo.conversationID
+                          ? "bg-amber-100 text-amber-800"
+                          : "text-stone-600"
+                      )}
+                    >
+                      {convo.messages.length > 0
+                        ? convo.messages[0].content.slice(0, 40) + "..."
+                        : "Empty conversation"}
+                    </button>
+                  </DrawerClose>
+                ))}
+              </div>
+            </DrawerContent>
+          </Drawer>
         </div>
       </div>
     </div>

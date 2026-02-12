@@ -1,6 +1,7 @@
 // File defining interface
 
-import { UUID , randomUUID } from "node:crypto";
+
+//import { UUID , randomUUID } from "crypto";
 
 //Define types
 
@@ -11,21 +12,21 @@ export type Message = {
 
 export type Conversation = {
     messages: Message[];
-    conversationID: UUID;
+    conversationID: string;
 }
 
 export interface Storage {
-    createConversation: () => UUID;
-    getConversation: (conversationID: UUID) => Conversation | null;
+    createConversation: () => string;
+    getConversation: (conversationID: string) => Conversation | null;
     getConversations: () => Conversation[];
-    addMessageToConversations: (message: Message, conversationID: UUID) => void;
+    addMessageToConversations: (message: Message, conversationID: string) => void;
 }
 
 export class InMemoryStorage implements Storage {
     // Creates the private array of convos that these methods can reach into
     private conversations: Conversation[] = []
-    createConversation(): UUID { 
-        let convoID = randomUUID();
+    createConversation(): string { 
+        let convoID = crypto.randomUUID();
         let newConversation: Conversation = {
             messages: [],
             conversationID: convoID
@@ -34,7 +35,7 @@ export class InMemoryStorage implements Storage {
         this.conversations.push(newConversation);
         return convoID;
     }
-    getConversation(convoID: UUID): Conversation | null { 
+    getConversation(convoID: string): Conversation | null { 
         let targetConvo = this.conversations.find(convo => convo.conversationID === convoID)
         if(targetConvo) {
             return targetConvo;
@@ -45,7 +46,7 @@ export class InMemoryStorage implements Storage {
     getConversations(): Conversation[] {
         return this.conversations;
     }
-    addMessageToConversations(message: Message, convoID: UUID): void {
+    addMessageToConversations(message: Message, convoID: string): void {
         let targetConversation = this.getConversation(convoID);
         // Looking at conversation. Add to conversation.messages;
         targetConversation?.messages.push(message);

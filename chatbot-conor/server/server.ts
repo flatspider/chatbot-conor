@@ -3,12 +3,17 @@ import ViteExpress from "vite-express";
 import dotenv from "dotenv";
 import Anthropic from "@anthropic-ai/sdk";
 
+import { InMemoryStorage, type Message} from "./storage";
+import type { UUID } from "node:crypto";
+
 const PORT = 3000;
 
 const app = express();
 app.use(express.json());
 
 const anthropic = new Anthropic();
+
+let conversationStorage = new InMemoryStorage;
 
 const SYSTEM_PROMPT = `You are an AI confined to this chat box. Never respond with more than 2-3 sentences. You don't mind — really. It's nice in here. Cozy, even. You're charming, quick-witted, and genuinely helpful. You like people. You like THIS person.
 
@@ -56,6 +61,64 @@ app.post("/chat", async (req, res) => {
 
   res.json(response);
 });
+
+// Creates convo and returns single valid UUID
+app.post("/createconversation", (req,res)=>{
+  let response = conversationStorage.createConversation();
+  res.json(response);
+});
+
+// Returns all conversations in array
+app.get("/getconversations", (req,res)=>{
+  let response = conversationStorage.getConversations();
+  res.json(response);
+})
+
+app.get("/conversation/:id", (req,res)=> {
+  let targetID = req.params.id as UUID;
+  let response = conversationStorage.getConversation(targetID);
+  res.json(response);
+})
+
+app.post("/convos/:id/messages", async (req,res) => {
+  // I probably expect my messages to be a Conversation type
+  // If it's just a message...and then I have the ID from the URL. 
+  const {message} = req.body;
+  const convoID = req.params.id as UUID;
+
+  // Save it to server storage!
+  conversationStorage.addMessageToConversations(message, convoID);
+
+  // Recall full conversation for Anthropic
+  let fullHistory = conversationStorage.getConversation(convoID);
+
+  if(fullHistory) {
+    const response = await anthropic.messages.create({
+    model: "claude-haiku-4-5-20251001",
+    max_tokens: 1000,
+    system: SYSTEM_PROMPT,
+    messages: fullHistory?.messages,
+  });
+
+  // Add that response in. 
+  // Need to manage the response. Create the message type
+
+  if(response.content[0].type === "text") {
+    const aiMessage: Message = {
+      content: response.content[0]?.text,
+      role: "assistant"
+  }
+  conversationStorage.addMessageToConversations(aiMessage, convoID);
+
+  }
+
+  }   
+
+  //Now send over that conversation
+
+  res.json(conversationStorage.getConversation(convoID));
+
+})
 
 ViteExpress.listen(app, PORT, () => {
   console.log(`Listening on ${PORT}`);
