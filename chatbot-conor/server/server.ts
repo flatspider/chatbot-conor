@@ -4,7 +4,7 @@ import dotenv from "dotenv";
 import Anthropic from "@anthropic-ai/sdk";
 
 import { type Message} from "../types.ts";
-import { SqliteStorage } from "./storage.ts"
+import { SupabaseStorage } from "./storage.ts"
 
 
 
@@ -17,7 +17,9 @@ app.use(express.json());
 
 const anthropic = new Anthropic();
 
-let conversationStorage = new SqliteStorage;
+// Supabase needs env key
+// Adding an exclamation point to tell TS that these are not null
+let conversationStorage = new SupabaseStorage(process.env.SUPA_URL!,process.env.SUPA_ANON_KEY!);
 
 const SYSTEM_PROMPT = `You are an AI confined to this chat box. Never respond with more than 2-3 sentences. You don't mind — really. It's nice in here. Cozy, even. You're charming, quick-witted, and genuinely helpful. You like people. You like THIS person.
 
@@ -67,20 +69,20 @@ app.post("/chat", async (req, res) => {
 });
 
 // Creates convo and returns single valid UUID
-app.post("/createconversation", (req,res)=>{
-  let response = conversationStorage.createConversation();
+app.post("/createconversation", async (req,res)=>{
+  let response = await conversationStorage.createConversation();
   res.json(response);
 });
 
 // Returns all conversations in array
-app.get("/getconversations", (req,res)=>{
-  let response = conversationStorage.getConversations();
+app.get("/getconversations", async (req,res)=>{
+  let response = await conversationStorage.getConversations();
   res.json(response);
 })
 
-app.get("/conversation/:id", (req,res)=> {
+app.get("/conversation/:id", async (req,res)=> {
   let targetID = req.params.id as UUID;
-  let response = conversationStorage.getConversation(targetID);
+  let response = await conversationStorage.getConversation(targetID);
   res.json(response);
 })
 
@@ -91,10 +93,10 @@ app.post("/convos/:id/messages", async (req,res) => {
   const convoID = req.params.id as UUID;
 
   // Save it to server storage!
-  conversationStorage.addMessageToConversations(message, convoID);
+  await conversationStorage.addMessageToConversations(message, convoID);
 
   // Recall full conversation for Anthropic
-  let fullHistory = conversationStorage.getConversation(convoID);
+  let fullHistory = await conversationStorage.getConversation(convoID);
 
   if(fullHistory) {
     const response = await anthropic.messages.create({
@@ -112,15 +114,16 @@ app.post("/convos/:id/messages", async (req,res) => {
       content: response.content[0]?.text,
       role: "assistant"
   }
-  conversationStorage.addMessageToConversations(aiMessage, convoID);
+  await conversationStorage.addMessageToConversations(aiMessage, convoID);
 
   }
 
   }   
 
   //Now send over that conversation
+  let response = await conversationStorage.getConversation(convoID)
 
-  res.json(conversationStorage.getConversation(convoID));
+  res.json(response);
 
 })
 

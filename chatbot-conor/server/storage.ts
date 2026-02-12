@@ -1,6 +1,7 @@
 // File defining interface
 // This is a default export, not a named one
 import { Database } from "bun:sqlite";
+import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 
 //import { UUID , randomUUID } from "crypto";
 
@@ -10,7 +11,7 @@ import {type Storage, type Message, type Conversation} from "../types.ts"
 export class InMemoryStorage implements Storage {
     // Creates the private array of convos that these methods can reach into
     private conversations: Conversation[] = []
-    createConversation(): string { 
+    async createConversation(): Promise<string> {
         let convoID = crypto.randomUUID();
         let newConversation: Conversation = {
             messages: [],
@@ -20,7 +21,7 @@ export class InMemoryStorage implements Storage {
         this.conversations.push(newConversation);
         return convoID;
     }
-    getConversation(convoID: string): Conversation | null { 
+    async getConversation(convoID: string): Promise<Conversation | null> {
         let targetConvo = this.conversations.find(convo => convo.conversationID === convoID)
         if(targetConvo) {
             return targetConvo;
@@ -28,11 +29,11 @@ export class InMemoryStorage implements Storage {
             return null;
         }
      }
-    getConversations(): Conversation[] {
+    async getConversations(): Promise<Conversation[]> {
         return this.conversations;
     }
-    addMessageToConversations(message: Message, convoID: string): void {
-        let targetConversation = this.getConversation(convoID);
+    async addMessageToConversations(message: Message, convoID: string): Promise<void> {
+        let targetConversation = await this.getConversation(convoID);
         // Looking at conversation. Add to conversation.messages;
         targetConversation?.messages.push(message);
     }
@@ -58,12 +59,12 @@ export class SqliteStorage implements Storage {
         FOREIGN KEY (conversationID) REFERENCES conversations(id))`).run()
     }
 
-    createConversation(): string {
+    async createConversation(): Promise<string> {
         let convoID = crypto.randomUUID();
         this.db.prepare("INSERT INTO conversations (id, createdAt) VALUES (?,?)").run(convoID, new Date().toISOString());
         return convoID;
     }
-    getConversation(convoID: string): Conversation | null {
+    async getConversation(convoID: string): Promise<Conversation | null> {
         // Instead of run, use get. this.db.prepare(SQL).get();
         const convo = this.db.prepare("SELECT * FROM conversations WHERE id = ?").get(convoID);
         if(!convo) return null;
@@ -74,9 +75,9 @@ export class SqliteStorage implements Storage {
             messages: messages as Message[]
         }
 
-    } 
+    }
 
-    getConversations(): Conversation[] {
+    async getConversations(): Promise<Conversation[]> {
         const conversations = this.db.prepare("SELECT * FROM conversations ORDER BY createdAt").all();
 
         return conversations.map((convo: any)=>{
@@ -88,9 +89,88 @@ export class SqliteStorage implements Storage {
         })
     }
 
-    addMessageToConversations(message: Message, convoID: string): void {
+    async addMessageToConversations(message: Message, convoID: string): Promise<void> {
         //const targetConversation = this.getConversation(convoID);
         this.db.prepare("INSERT INTO messages (id, conversationID, role, content, createdAt) VALUES (?, ?, ?, ?, ?)").run(crypto.randomUUID(), convoID, message.role, message.content, new Date().toISOString());
     }
-     
+
+}
+
+export class SupabaseStorage implements Storage {
+    private supabase: SupabaseClient;
+
+    constructor(supabaseUrl: string, supabaseAnonKey: string) {
+        this.supabase = createClient(supabaseUrl, supabaseAnonKey);
+    }
+
+    async createConversation(): Promise<string> {
+        const convoID = crypto.randomUUID();
+        const { error } = await this.supabase
+            .from("conversations")
+            .insert({ id: convoID });
+
+        if (error) throw new Error(`Failed to create conversation: ${error.message}`);
+        return convoID;
+    }
+
+    async getConversation(convoID: string): Promise<Conversation | null> {
+        const { data: convo, error: convoError } = await this.supabase
+            .from("conversations")
+            .select("*")
+            .eq("id", convoID)
+            .single();
+
+        if (convoError || !convo) return null;
+
+        const { data: messages, error: msgError } = await this.supabase
+            .from("messages")
+            .select("role, content")
+            .eq("conversation_id", convoID)
+            .order("created_at", { ascending: true });
+
+        if (msgError) throw new Error(`Failed to get messages: ${msgError.message}`);
+
+        return {
+            conversationID: convo.id,
+            messages: (messages ?? []) as Message[]
+        };
+    }
+
+    async getConversations(): Promise<Conversation[]> {
+        const { data: conversations, error: convoError } = await this.supabase
+            .from("conversations")
+            .select("*")
+            .order("created_at", { ascending: true });
+
+        if (convoError) throw new Error(`Failed to get conversations: ${convoError.message}`);
+
+        const results: Conversation[] = [];
+        for (const convo of conversations ?? []) {
+            const { data: messages } = await this.supabase
+                .from("messages")
+                .select("role, content")
+                .eq("conversation_id", convo.id)
+                .order("created_at", { ascending: true });
+
+            results.push({
+                conversationID: convo.id,
+                messages: (messages ?? []) as Message[]
+            });
+        }
+
+        return results;
+    }
+
+    async addMessageToConversations(message: Message, convoID: string): Promise<void> {
+        const { error } = await this.supabase
+            .from("messages")
+            .insert({
+                id: crypto.randomUUID(),
+                conversation_id: convoID,
+                role: message.role,
+                content: message.content,
+            });
+
+        if (error) throw new Error(`Failed to add message: ${error.message}`);
+    }
 }
