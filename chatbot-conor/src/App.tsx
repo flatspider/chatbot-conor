@@ -1,16 +1,9 @@
 import { useEffect, useRef, useState } from "react";
-import { Coffee, SendHorizontal, Plus } from "lucide-react";
+import { Coffee, SendHorizontal } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { SideBar } from "./components";
+import { SideBar } from "./components/SideBar";
 import { ShimmerButton } from "@/components/ui/shimmer-button";
-import {
-  Drawer,
-  DrawerTrigger,
-  DrawerContent,
-  DrawerHeader,
-  DrawerTitle,
-  DrawerClose,
-} from "@/components/ui/drawer";
+
 import { type Message, type Conversation } from "../types";
 import "./App.css";
 
@@ -372,7 +365,13 @@ function App() {
           </div>
 
           {/* Conversations Drawer */}
-          <SideBar />
+          <SideBar
+            conversations={conversations}
+            startNewConversation={startNewConversation}
+            setActiveConversationID={setActiveConversationID}
+            activeConversationID={activeConversationID}
+            setMessages={setMessages}
+          />
         </div>
       </div>
     </div>
