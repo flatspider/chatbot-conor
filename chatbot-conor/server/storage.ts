@@ -67,7 +67,7 @@ export class SqliteStorage implements Storage {
         // Instead of run, use get. this.db.prepare(SQL).get();
         const convo = this.db.prepare("SELECT * FROM conversations WHERE id = ?").get(convoID);
         if(!convo) return null;
-        const messages = this.db.prepare("SELECT * FROM messages WHERE conversationID = ? ORDER BY createdAt").all(convoID);
+        const messages = this.db.prepare("SELECT role, content FROM messages WHERE conversationID = ? ORDER BY createdAt").all(convoID);
 
         return {
             conversationID: convo.id,
@@ -80,7 +80,7 @@ export class SqliteStorage implements Storage {
         const conversations = this.db.prepare("SELECT * FROM conversations ORDER BY createdAt").all();
 
         return conversations.map((convo: any)=>{
-            const messages = this.db.prepare("SELECT * FROM messages where conversationID = ? ORDER BY createdAt").all(convo.id);
+            const messages = this.db.prepare("SELECT role, content FROM messages where conversationID = ? ORDER BY createdAt").all(convo.id);
             return {
                 conversationID: convo.id,
                 messages: messages as Message[]
