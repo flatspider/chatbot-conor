@@ -13,7 +13,7 @@ import {
 import { type Message, type Conversation } from "../types";
 import "./App.css";
 
-// Strips the AI's commands to change the mood or button from the chat history
+// Strips the update button or update moodmeter from the reply text
 function parseCommands(text: string): {
   clean: string;
   buttonText: string | null;
@@ -23,12 +23,14 @@ function parseCommands(text: string): {
   let buttonText: string | null = null;
   let mood: number | null = null;
 
+  // Remove everything up to the second bracket
   const buttonMatch = clean.match(/\[button:\s*(.+?)\]/);
   if (buttonMatch) {
     buttonText = buttonMatch[1];
     clean = clean.replace(buttonMatch[0], "");
   }
 
+  // Remove everything to the second bracket of mood
   const moodMatch = clean.match(/\[mood:\s*(\d+)\]/);
   if (moodMatch) {
     mood = Math.min(100, Math.max(0, parseInt(moodMatch[1])));
@@ -38,6 +40,7 @@ function parseCommands(text: string): {
   return { clean: clean.trim(), buttonText, mood };
 }
 
+// TODO: Update and balance these values / names
 function getMoodLabel(value: number): string {
   if (value < 20) return "Wary";
   if (value < 40) return "Curious";
@@ -56,50 +59,23 @@ function App() {
     string | null
   >(null);
   const [error, setError] = useState(null);
-  const [buttonText, setButtonText] = useState("Feeling cozy");
-  const [buttonChanged, setButtonChanged] = useState(false);
-  const [mood, setMood] = useState(25);
-  const [dragMood, setDragMood] = useState<number | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+
+  // AI button
+  const [buttonText, setButtonText] = useState("Feeling cozy");
+  const [buttonChanged, setButtonChanged] = useState(false);
+
+  // Mood needle state
+  const [mood, setMood] = useState(25);
+  const [dragMood, setDragMood] = useState<number | null>(null);
   const meterSvgRef = useRef<SVGSVGElement>(null);
   const isDraggingRef = useRef(false);
-
   const displayMood = dragMood ?? mood;
   const isDragging = dragMood !== null;
   const needleRotation = -90 + (displayMood / 100) * 180;
 
-  // Auto-scroll to bottom when messages change
-  // Also feels like the compounded chat should live on the server
-  // And lets put in a time management system
-  // Also want the tokenizer lab
-  useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [messages, isLoading]);
-
-  // On render, fetch all conversations from GET /getconversations endpoint
-  useEffect(() => {
-    // Establish a conversation on page load
-    startNewConversation();
-
-    const convos = fetch("/getconversations")
-      .then((response) => {
-        if (!response.ok) {
-          throw new Error(`No conversations`);
-        } else {
-          return response.json();
-        }
-      })
-      .then((json) => {
-        setConversations(json);
-        setIsLoading(false);
-        console.log("convers", json);
-      })
-      .catch((err) => {
-        setError(err);
-        setIsLoading(false);
-      });
-  }, []);
+  /* MOOD METER -------- */
 
   const getMoodFromPointer = (clientX: number, clientY: number): number => {
     if (!meterSvgRef.current) return mood;
@@ -134,6 +110,37 @@ function App() {
     setDragMood(null); // springs back to Claude's mood value
   };
 
+  /* END MOOD METER ------- */
+
+  // Bring last message into view when loading ends or new message
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [messages, isLoading]);
+
+  // On render, fetch all conversations from GET /getconversations endpoint
+  useEffect(() => {
+    // Establish a conversation on page load
+    startNewConversation();
+
+    const convos = fetch("/getconversations")
+      .then((response) => {
+        if (!response.ok) {
+          throw new Error(`No conversations`);
+        } else {
+          return response.json();
+        }
+      })
+      .then((json) => {
+        setConversations(json);
+        setIsLoading(false);
+        console.log("convers", json);
+      })
+      .catch((err) => {
+        setError(err);
+        setIsLoading(false);
+      });
+  }, []);
+
   const startNewConversation = async () => {
     const convoID = await fetch("/createconversation", { method: "POST" });
     let id = await convoID.json();
@@ -153,9 +160,6 @@ function App() {
     setInput("");
     setIsLoading(true);
 
-    // Need to send over convo ID...from where?
-    // And this is sending over lots of messages.
-    // What is my current convoID? Let's make one up
     let convoID = activeConversationID;
     const response = await fetch(`/convos/${convoID}/messages`, {
       method: "POST",
@@ -194,9 +198,9 @@ function App() {
   return (
     <div className="flex min-h-screen items-center justify-center bg-amber-50 p-4">
       <div className="relative w-full max-w-lg">
-        {/* The chat box */}
+        {/* The entire chat box container */}
         <div className="flex h-[600px] flex-col rounded-3xl border border-stone-200 bg-stone-50 shadow-lg">
-          {/* Header */}
+          {/* Header items, title and online indicator */}
           <div className="flex items-center justify-between border-b border-stone-200 px-5 py-3">
             <div className="flex items-center gap-2">
               <Coffee className="h-4 w-4 text-amber-700" />
