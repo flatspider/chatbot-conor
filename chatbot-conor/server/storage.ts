@@ -43,8 +43,8 @@ export class SqliteStorage implements Storage {
 
     // The constructor builds out the database
     // This.db.prepare("INJECT SQL COMMANDS").run() to run sql on the database
-    constructor() {
-        this.db = new Database("chat-history.db");
+    constructor(dbPath: string = "chat-history.db") {
+        this.db = new Database(dbPath);
         // Bun uses a slightly different way to turn on WAL
         this.db.exec("PRAGMA journal_mode = WAL");
         //this.db.pragma("journal_mode = WAL");
