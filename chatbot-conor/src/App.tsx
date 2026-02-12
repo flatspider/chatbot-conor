@@ -399,7 +399,7 @@ function App() {
                         "rounded-lg px-3 py-2 text-left text-sm transition-colors hover:bg-stone-100",
                         activeConversationID === convo.conversationID
                           ? "bg-amber-100 text-amber-800"
-                          : "text-stone-600"
+                          : "text-stone-600",
                       )}
                     >
                       {convo.messages.length > 0

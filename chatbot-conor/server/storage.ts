@@ -2,27 +2,10 @@
 // This is a default export, not a named one
 import { Database } from "bun:sqlite";
 
-
 //import { UUID , randomUUID } from "crypto";
 
-//Define types
+import {type Storage, type Message, type Conversation} from "../types.ts"
 
-export type Message = {
-  content: string,
-  role: 'user' | 'assistant',
-}
-
-export type Conversation = {
-    messages: Message[];
-    conversationID: string;
-}
-
-export interface Storage {
-    createConversation: () => string;
-    getConversation: (conversationID: string) => Conversation | null;
-    getConversations: () => Conversation[];
-    addMessageToConversations: (message: Message, conversationID: string) => void;
-}
 
 export class InMemoryStorage implements Storage {
     // Creates the private array of convos that these methods can reach into

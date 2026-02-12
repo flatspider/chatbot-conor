@@ -3,7 +3,11 @@ import ViteExpress from "vite-express";
 import dotenv from "dotenv";
 import Anthropic from "@anthropic-ai/sdk";
 
-import { InMemoryStorage, type Message, SqliteStorage} from "./storage";
+import { type Message} from "../types.ts";
+import { SqliteStorage } from "./storage.ts"
+
+
+
 import type { UUID } from "node:crypto";
 
 const PORT = 3000;
