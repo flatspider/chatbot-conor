@@ -4,27 +4,27 @@ import { type Message } from '../types';
 
 describe('createConversation', () => {
     test('adds a conversation to storage', () => {
-        const storage = new SqliteStorage();
+        const storage = new SqliteStorage(":memory:");
         storage.createConversation();
         expect(storage.getConversations()).toHaveLength(1);
     });
 
     test('returns a UUID', () => {
-        const storage = new SqliteStorage();
+        const storage = new SqliteStorage(":memory:");
         const id = storage.createConversation();
         expect(typeof id).toBe('string');
         expect(id).toHaveLength(36); // UUID format: xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx
     });
 
     test('creates conversations with unique IDs', () => {
-        const storage = new SqliteStorage();
+        const storage = new SqliteStorage(":memory:");
         const id1 = storage.createConversation();
         const id2 = storage.createConversation();
         expect(id1).not.toBe(id2);
     });
 
     test('new conversation starts with empty messages', () => {
-        const storage = new SqliteStorage();
+        const storage = new SqliteStorage(":memory:");
         const id = storage.createConversation();
         const convo = storage.getConversation(id);
         expect(convo?.messages).toEqual([]);
@@ -33,7 +33,7 @@ describe('createConversation', () => {
 
 describe('getConversation', () => {
     test('returns the conversation matching the ID', () => {
-        const storage = new SqliteStorage();
+        const storage = new SqliteStorage(":memory:");
         const id = storage.createConversation();
         const convo = storage.getConversation(id);
         expect(convo).not.toBeNull();
@@ -41,19 +41,19 @@ describe('getConversation', () => {
     });
 
     test('returns null for a nonexistent ID', () => {
-        const storage = new SqliteStorage();
+        const storage = new SqliteStorage(":memory:");
         expect(storage.getConversation(crypto.randomUUID())).toBeNull();
     });
 });
 
 describe('getConversations', () => {
     test('returns empty array when no conversations exist', () => {
-        const storage = new SqliteStorage();
+        const storage = new SqliteStorage(":memory:");
         expect(storage.getConversations()).toEqual([]);
     });
 
     test('returns all created conversations', () => {
-        const storage = new SqliteStorage();
+        const storage = new SqliteStorage(":memory:");
         storage.createConversation();
         storage.createConversation();
         storage.createConversation();
@@ -63,7 +63,7 @@ describe('getConversations', () => {
 
 describe('addMessageToConversations', () => {
     test('adds a message to the correct conversation', () => {
-        const storage = new SqliteStorage();
+        const storage = new SqliteStorage(":memory:");
         const id = storage.createConversation();
         const msg: Message = { content: "hello", role: "user" };
 
@@ -76,7 +76,7 @@ describe('addMessageToConversations', () => {
     });
 
     test('adds multiple messages in order', () => {
-        const storage = new SqliteStorage();
+        const storage = new SqliteStorage(":memory:");
         const id = storage.createConversation();
 
         storage.addMessageToConversations({ content: "hi", role: "user" }, id);
@@ -89,7 +89,7 @@ describe('addMessageToConversations', () => {
     });
 
     test('does not add message to other conversations', () => {
-        const storage = new SqliteStorage();
+        const storage = new SqliteStorage(":memory:");
         const id1 = storage.createConversation();
         const id2 = storage.createConversation();
 
@@ -100,7 +100,7 @@ describe('addMessageToConversations', () => {
     });
 
     test('silently does nothing for a nonexistent conversation ID', () => {
-        const storage = new SqliteStorage();
+        const storage = new SqliteStorage(":memory:");
         const fakeID = crypto.randomUUID();
         // Should not throw
         storage.addMessageToConversations({ content: "hi", role: "user" }, fakeID);
