@@ -96,12 +96,12 @@ export function LoginForm({
                 />
               </Field>
               <Field>
-                <Button type="submit">Login</Button>
+                <Button type="submit" className="cursor-pointer">Login</Button>
 
                 <FieldDescription className="text-center">
-                  Don&apos;t have an account? <a href="#">Sign up</a>
+                  Don&apos;t have an account?
                 </FieldDescription>
-                <Button type="button" onClick={handleSignUp}>
+                <Button type="button" className="cursor-pointer" onClick={handleSignUp}>
                   Sign up
                 </Button>
               </Field>
