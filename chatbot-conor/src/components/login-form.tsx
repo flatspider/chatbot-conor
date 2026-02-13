@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useState } from "react";
 import { authClient } from "@/lib/auth-client";
 import { useNavigate } from "react-router";
 
@@ -23,6 +23,39 @@ export function LoginForm({
   className,
   ...props
 }: React.ComponentProps<"div">) {
+  const [email, setEmail] = useState("");
+  const [name, setName] = useState("");
+  const [password, setPassword] = useState("");
+
+  const navigate = useNavigate();
+
+  const handleLogin = async (e: React.SyntheticEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    // Send password and email to
+    // Returns a promise object
+    const response = await authClient.signIn.email({ email, password });
+    if (response) {
+      navigate("/new");
+    } else {
+      alert("Login Failed");
+    }
+  };
+
+  const handleSignUp = async () => {
+    // React batches state update. No render, no update
+    //setName(email);
+    const response = await authClient.signUp.email({
+      email,
+      name: email,
+      password,
+    });
+    if (response) {
+      navigate("/new");
+    } else {
+      alert("Signup Failed");
+    }
+  };
+
   return (
     <div className={cn("flex flex-col gap-6", className)} {...props}>
       <Card>
@@ -33,11 +66,15 @@ export function LoginForm({
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <form>
+          <form onSubmit={handleLogin}>
             <FieldGroup>
               <Field>
                 <FieldLabel htmlFor="email">Email</FieldLabel>
                 <Input
+                  value={email}
+                  onChange={(e) => {
+                    setEmail(e.target.value);
+                  }}
                   id="email"
                   type="email"
                   placeholder="m@example.com"
@@ -48,7 +85,15 @@ export function LoginForm({
                 <div className="flex items-center">
                   <FieldLabel htmlFor="password">Password</FieldLabel>
                 </div>
-                <Input id="password" type="password" required />
+                <Input
+                  id="password"
+                  type="password"
+                  required
+                  value={password}
+                  onChange={(e) => {
+                    setPassword(e.target.value);
+                  }}
+                />
               </Field>
               <Field>
                 <Button type="submit">Login</Button>
@@ -56,6 +101,9 @@ export function LoginForm({
                 <FieldDescription className="text-center">
                   Don&apos;t have an account? <a href="#">Sign up</a>
                 </FieldDescription>
+                <Button type="button" onClick={handleSignUp}>
+                  Sign up
+                </Button>
               </Field>
             </FieldGroup>
           </form>
