@@ -34,8 +34,9 @@ export const SideBar = (props: { conversations: Conversation[] | null }) => {
       {/* Conversations Drawer */}
       <Drawer direction="left">
         <DrawerTrigger asChild>
-          <button className="mt-4 rounded-xl border border-stone-200 bg-white px-3 py-2 text-sm text-stone-600 hover:bg-stone-100 transition-colors">
+          <button className="flex items-center gap-2 rounded-xl bg-amber-600 px-4 py-2.5 text-sm font-medium text-white transition-colors hover:bg-amber-700 [writing-mode:vertical-lr]">
             <MessageSquare className="h-4 w-4" />
+            conversations
           </button>
         </DrawerTrigger>
         <DrawerContent>
@@ -74,7 +75,10 @@ export const SideBar = (props: { conversations: Conversation[] | null }) => {
               </DrawerClose>
             ))}
             <DrawerClose asChild>
-              <button onClick={handleLogout} className="w-full rounded-lg px-3 py-2 text-sm text-stone-600 hover:bg-red-100 hover:text-red-700 transition-colors cursor-pointer">
+              <button
+                onClick={handleLogout}
+                className="w-full rounded-lg px-3 py-2 text-sm text-stone-600 hover:bg-red-100 hover:text-red-700 transition-colors cursor-pointer"
+              >
                 <div className="flex items-center justify-center gap-2">
                   LOG OUT <LogOutIcon className="h-4 w-4" />
                 </div>

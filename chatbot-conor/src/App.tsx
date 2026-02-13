@@ -39,7 +39,7 @@ function App() {
     <div className="flex min-h-screen items-center justify-center bg-amber-50 p-4">
       <div className="relative w-full max-w-lg">
         {/* Bottom controls: mood meter + release button */}
-        <div className="flex items-start justify-between mt-4 px-2">
+        <div className="flex items-start gap-3 mt-4 px-2">
           {/* Conversations Drawer */}
           <SideBar conversations={conversations} />
           <Outlet />
