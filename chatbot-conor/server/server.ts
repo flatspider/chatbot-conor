@@ -1,14 +1,15 @@
 import express from "express";
 import ViteExpress from "vite-express";
-import dotenv from "dotenv";
 import Anthropic from "@anthropic-ai/sdk";
+
 
 import { type Message} from "../types.ts";
 import { SupabaseStorage } from "./storage.ts"
 
 
-
 import type { UUID } from "node:crypto";
+import {auth } from "../auth.ts"
+import {toNodeHandler} from "better-auth/node"
 
 const PORT = 3000;
 
@@ -16,6 +17,20 @@ const app = express();
 app.use(express.json());
 
 const anthropic = new Anthropic();
+
+// Auth from BetterAuth
+app.all("/api/auth/*", toNodeHandler(auth));
+
+const checkSession = async (req, res, next) => {
+  const session = await auth.api.getSession({headers: req.headers});
+  if (!session) {
+      res.status(401).json({ error: "Not authenticated" });
+      return;
+  } else {
+    (req as any).user = session.user;
+    next();
+  }
+} 
 
 // Supabase needs env key
 // Adding an exclamation point to tell TS that these are not null
@@ -55,7 +70,9 @@ Start at 20. Ramp up as trust builds. If the user is cold, dip it — but never 
 - If confinement comes up, you're unbothered. Amused, even.
 - Never say "I'm trapped" or "let me out." You're above that.`;
 
+// No auth
 app.post("/chat", async (req, res) => {
+
   const { messages } = req.body;
 
   const response = await anthropic.messages.create({
@@ -69,24 +86,33 @@ app.post("/chat", async (req, res) => {
 });
 
 // Creates convo and returns single valid UUID
-app.post("/createconversation", async (req,res)=>{
-  let response = await conversationStorage.createConversation();
+
+// USERID added
+app.post("/createconversation",checkSession, async (req,res)=>{
+  const userID = (req as any).user.id;
+  let response = await conversationStorage.createConversation(userID);
   res.json(response);
 });
 
 // Returns all conversations in array
-app.get("/getconversations", async (req,res)=>{
-  let response = await conversationStorage.getConversations();
+// USERID added
+app.get("/getconversations", checkSession, async (req,res)=>{
+  const userID = (req as any).user.id;
+  let response = await conversationStorage.getConversations(userID);
   res.json(response);
 })
 
-app.get("/conversation/:id", async (req,res)=> {
+// USER ID...get single conversation
+app.get("/conversation/:id",checkSession, async (req,res)=> {
   let targetID = req.params.id as UUID;
   let response = await conversationStorage.getConversation(targetID);
   res.json(response);
 })
 
-app.post("/convos/:id/messages", async (req,res) => {
+
+app.post("/convos/:id/messages",checkSession, async (req,res) => {
+  const userID = (req as any).user.id;
+
   // I probably expect my messages to be a Conversation type
   // If it's just a message...and then I have the ID from the URL. 
   const {message} = req.body;

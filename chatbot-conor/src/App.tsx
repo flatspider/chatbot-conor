@@ -1,9 +1,9 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 
-import { Navigate, Outlet } from "react-router";
+import { Outlet } from "react-router";
 import { SideBar } from "./components/SideBar";
 
-import { type Message, type Conversation } from "../types";
+import { type Conversation } from "../types";
 import "./App.css";
 
 function App() {
@@ -37,15 +37,6 @@ function App() {
         setIsLoading(false);
       });
   }, []);
-
-  /*
-  const startNewConversation = async () => {
-    const convoID = await fetch("/createconversation", { method: "POST" });
-    let id = await convoID.json();
-
-    setActiveConversationID(id);
-  };
-  */
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-amber-50 p-4">
