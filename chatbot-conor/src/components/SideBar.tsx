@@ -1,8 +1,9 @@
 // Contain and export the ShadCn sidebar here
 import { type Conversation } from "../../types";
-import { MessageSquare, Plus } from "lucide-react";
+import { MessageSquare, Plus, LogOutIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useNavigate, useParams } from "react-router";
+import { authClient } from "@/lib/auth-client";
 import {
   Drawer,
   DrawerTrigger,
@@ -16,6 +17,17 @@ import {
 export const SideBar = (props: { conversations: Conversation[] | null }) => {
   const navigate = useNavigate();
   const { chatID } = useParams();
+
+  const handleLogout = async () => {
+    // Send password and email to
+    // Returns a promise object
+    const response = await authClient.signOut();
+    if (response.error) {
+      alert("Logout Failed");
+    } else {
+      navigate("/");
+    }
+  };
 
   return (
     <>
@@ -59,6 +71,13 @@ export const SideBar = (props: { conversations: Conversation[] | null }) => {
                 </button>
               </DrawerClose>
             ))}
+            <DrawerClose>
+              <button onClick={handleLogout}>
+                <div className="flex items-center gap-2">
+                  LOG OUT <LogOutIcon className="h-4 w-4" />
+                </div>
+              </button>
+            </DrawerClose>
           </div>
         </DrawerContent>
       </Drawer>
