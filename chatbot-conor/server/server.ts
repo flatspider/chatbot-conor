@@ -19,7 +19,7 @@ app.use(express.json());
 const anthropic = new Anthropic();
 
 // Auth from BetterAuth
-app.all("/api/auth/*", toNodeHandler(auth));
+app.all("/api/auth/{*splat}", toNodeHandler(auth));
 
 const checkSession = async (req, res, next) => {
   const session = await auth.api.getSession({headers: req.headers});
@@ -109,7 +109,7 @@ app.get("/conversation/:id",checkSession, async (req,res)=> {
   res.json(response);
 })
 
-
+//addMessage..and getConversation need userID
 app.post("/convos/:id/messages",checkSession, async (req,res) => {
   const userID = (req as any).user.id;
 
