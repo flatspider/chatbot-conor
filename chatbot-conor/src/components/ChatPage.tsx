@@ -163,6 +163,30 @@ export const ChatPage = () => {
         }
       })
       .then((json) => {
+        // Clean out messages of button text:
+
+        const rawMessages = json.messages ?? [];
+        let lastMood: number | null = null;
+        let lastButton: string | null = null;
+
+        const cleanedMessages = rawMessages.map((msg: Message) => {
+          if (msg.role === "assistant") {
+            const {
+              clean,
+              mood: newMood,
+              buttonText,
+            } = parseCommands(msg.content);
+            if (newMood !== null) lastMood = newMood;
+            if (buttonText) lastButton = buttonText;
+            return { ...msg, content: clean };
+          }
+          return msg;
+        });
+
+        setMessages(cleanedMessages);
+        if (lastMood !== null) setMood(lastMood);
+        if (lastButton) setButtonText(lastButton);
+
         setConversation(json);
         setIsLoading(false);
         console.log("convers", json);
