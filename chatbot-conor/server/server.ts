@@ -109,7 +109,7 @@ app.get("/conversation/:id",checkSession, async (req,res)=> {
   res.json(response);
 })
 
-
+//addMessage..and getConversation need userID
 app.post("/convos/:id/messages",checkSession, async (req,res) => {
   const userID = (req as any).user.id;
 

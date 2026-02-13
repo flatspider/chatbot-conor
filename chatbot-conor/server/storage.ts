@@ -11,7 +11,7 @@ import {type Storage, type Message, type Conversation} from "../types.ts"
 export class InMemoryStorage implements Storage {
     // Creates the private array of convos that these methods can reach into
     private conversations: Conversation[] = []
-    async createConversation(): Promise<string> {
+    async createConversation(userId: string): Promise<string> {
         let convoID = crypto.randomUUID();
         let newConversation: Conversation = {
             messages: [],
@@ -29,7 +29,7 @@ export class InMemoryStorage implements Storage {
             return null;
         }
      }
-    async getConversations(): Promise<Conversation[]> {
+    async getConversations(userId: string): Promise<Conversation[]> {
         return this.conversations;
     }
     async addMessageToConversations(message: Message, convoID: string): Promise<void> {
@@ -59,7 +59,7 @@ export class SqliteStorage implements Storage {
         FOREIGN KEY (conversationID) REFERENCES conversations(id))`).run()
     }
 
-    async createConversation(): Promise<string> {
+    async createConversation(userId: string): Promise<string> {
         let convoID = crypto.randomUUID();
         this.db.prepare("INSERT INTO conversations (id, createdAt) VALUES (?,?)").run(convoID, new Date().toISOString());
         return convoID;
@@ -77,7 +77,7 @@ export class SqliteStorage implements Storage {
 
     }
 
-    async getConversations(): Promise<Conversation[]> {
+    async getConversations(userId: string): Promise<Conversation[]> {
         const conversations = this.db.prepare("SELECT * FROM conversations ORDER BY createdAt").all();
 
         return conversations.map((convo: any)=>{
@@ -103,11 +103,11 @@ export class SupabaseStorage implements Storage {
         this.supabase = createClient(supabaseUrl, supabaseAnonKey);
     }
 
-    async createConversation(): Promise<string> {
+    async createConversation(userId: string): Promise<string> {
         const convoID = crypto.randomUUID();
         const { error } = await this.supabase
             .from("conversations")
-            .insert({ id: convoID });
+            .insert({ id: convoID, user_id: userId });
 
         if (error) throw new Error(`Failed to create conversation: ${error.message}`);
         return convoID;
@@ -136,10 +136,11 @@ export class SupabaseStorage implements Storage {
         };
     }
 
-    async getConversations(): Promise<Conversation[]> {
+    async getConversations(userId: string): Promise<Conversation[]> {
         const { data: conversations, error: convoError } = await this.supabase
             .from("conversations")
             .select("*")
+            .eq("user_id", userId)
             .order("created_at", { ascending: true });
 
         if (convoError) throw new Error(`Failed to get conversations: ${convoError.message}`);
