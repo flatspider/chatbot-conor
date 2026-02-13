@@ -34,10 +34,10 @@ export function LoginForm({
     // Send password and email to
     // Returns a promise object
     const response = await authClient.signIn.email({ email, password });
-    if (response) {
-      navigate("/new");
-    } else {
+    if (response.error) {
       alert("Login Failed");
+    } else {
+      navigate("/new");
     }
   };
 
@@ -49,10 +49,10 @@ export function LoginForm({
       name: email,
       password,
     });
-    if (response) {
-      navigate("/new");
-    } else {
+    if (response.error) {
       alert("Signup Failed");
+    } else {
+      navigate("/new");
     }
   };
 
