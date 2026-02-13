@@ -11,8 +11,8 @@ createRoot(document.getElementById("root")!).render(
   <StrictMode>
     <BrowserRouter>
       <Routes>
+        <Route path="/" element={<LoginPage />} />
         <Route element={<App />}>
-          <Route path="/" element={<LoginPage />} />
           <Route path="/new" element={<NewChatPage />} />
           <Route path="/chat/:chatID" element={<ChatPage />} />
         </Route>
