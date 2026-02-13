@@ -9,5 +9,3 @@ export const auth = betterAuth({
     connectionString: process.env.SUPA_CONNECTION_STRING,
   }),
 });
-
-export default auth;
