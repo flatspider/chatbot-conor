@@ -24,7 +24,7 @@ export function LoginForm({
   ...props
 }: React.ComponentProps<"div">) {
   const [email, setEmail] = useState("");
-  const [name, setName] = useState("");
+  //const [name, setName] = useState("");
   const [password, setPassword] = useState("");
 
   const navigate = useNavigate();
@@ -96,12 +96,18 @@ export function LoginForm({
                 />
               </Field>
               <Field>
-                <Button type="submit" className="cursor-pointer">Login</Button>
+                <Button type="submit" className="cursor-pointer">
+                  Login
+                </Button>
 
                 <FieldDescription className="text-center">
                   Don&apos;t have an account?
                 </FieldDescription>
-                <Button type="button" className="cursor-pointer" onClick={handleSignUp}>
+                <Button
+                  type="button"
+                  className="cursor-pointer"
+                  onClick={handleSignUp}
+                >
                   Sign up
                 </Button>
               </Field>

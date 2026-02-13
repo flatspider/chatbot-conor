@@ -33,11 +33,12 @@ function parseCommands(text: string): {
 }
 
 export const ChatPage = () => {
-  const [error, setError] = useState(null);
+  // Determine proper way to use error
+  const [_error, setError] = useState(null);
   const [input, setInput] = useState("");
   const [messages, setMessages] = useState<Message[]>([]);
   const messagesEndRef = useRef<HTMLDivElement>(null);
-  const [conversation, setConversation] = useState<Conversation | null>(null);
+  const [_conversation, setConversation] = useState<Conversation | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const { chatID } = useParams();
 
@@ -103,7 +104,7 @@ export const ChatPage = () => {
   useEffect(() => {
     // fetch the specific conversation
 
-    const convo = fetch(`/conversation/${chatID}`, { method: "GET" })
+    fetch(`/conversation/${chatID}`, { method: "GET" })
       .then((response) => {
         if (!response.ok) {
           throw new Error(`No conversation found`);

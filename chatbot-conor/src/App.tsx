@@ -11,15 +11,14 @@ function App() {
   const [conversations, setConversations] = useState<Conversation[] | null>(
     null,
   );
-  const [error, setError] = useState(null);
-  const [isLoading, setIsLoading] = useState(false);
+  const [_error, setError] = useState(null);
 
   // On render, fetch all conversations from GET /getconversations endpoint
   useEffect(() => {
     // Establish a conversation on page load
     // startNewConversation();
 
-    const convos = fetch("/getconversations")
+    fetch("/getconversations")
       .then((response) => {
         if (!response.ok) {
           throw new Error(`No conversations`);
@@ -29,12 +28,10 @@ function App() {
       })
       .then((json) => {
         setConversations(json);
-        setIsLoading(false);
         console.log("convers", json);
       })
       .catch((err) => {
         setError(err);
-        setIsLoading(false);
       });
   }, []);
 
