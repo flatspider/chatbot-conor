@@ -9,7 +9,7 @@
     "lint": "eslint .",
     "preview": "vite preview",
     "test": "vitest",
-    "start": "bun ./server/server.ts"
+    "start": "bun run ./server/server.ts"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.74.0",
