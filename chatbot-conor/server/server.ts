@@ -87,6 +87,7 @@ app.post("/chat", async (req, res) => {
 
 // Creates convo and returns single valid UUID
 
+// USERID added
 app.post("/createconversation",checkSession, async (req,res)=>{
   const userID = (req as any).user.id;
   let response = await conversationStorage.createConversation(userID);
@@ -94,12 +95,14 @@ app.post("/createconversation",checkSession, async (req,res)=>{
 });
 
 // Returns all conversations in array
+// USERID added
 app.get("/getconversations", checkSession, async (req,res)=>{
   const userID = (req as any).user.id;
   let response = await conversationStorage.getConversations(userID);
   res.json(response);
 })
 
+// USER ID...get single conversation
 app.get("/conversation/:id",checkSession, async (req,res)=> {
   let targetID = req.params.id as UUID;
   let response = await conversationStorage.getConversation(targetID);
