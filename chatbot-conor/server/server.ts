@@ -11,7 +11,7 @@ import type { UUID } from "node:crypto";
 import {auth } from "../auth.ts"
 import {toNodeHandler} from "better-auth/node"
 
-const PORT = 3000;
+const PORT = Number(process.env.PORT) || 3000;
 
 const app = express();
 app.use(express.json());
