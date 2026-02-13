@@ -49,8 +49,22 @@ export const ChatPage = () => {
   // Mood state
   const [mood, setMood] = useState(20);
 
-  // Dynamic chat height based on mood
-  const chatHeight = mood <= 20 ? 400 : 400 + ((mood - 20) / 80) * 300;
+  // Viewport size for dynamic scaling
+  const [viewportSize, setViewportSize] = useState({ w: window.innerWidth, h: window.innerHeight });
+  useEffect(() => {
+    const onResize = () => setViewportSize({ w: window.innerWidth, h: window.innerHeight });
+    window.addEventListener('resize', onResize);
+    return () => window.removeEventListener('resize', onResize);
+  }, []);
+
+  // Non-linear (quadratic) chat size based on mood
+  const t = Math.max(0, (mood - 15) / 85);
+  const chatHeight = 300 + Math.pow(t, 2) * (viewportSize.h - 332);
+  const chatWidth = 350 + Math.pow(t, 2) * (viewportSize.w - 382);
+  const chatFontSize = 14 + Math.pow(t, 2) * 6; // 14px → 20px
+
+  // Button only visible after first AI reply
+  const hasAssistantMessage = messages.some(m => m.role === 'assistant');
 
   // Bring last message into view when loading ends or new message
   useEffect(() => {
@@ -102,7 +116,12 @@ export const ChatPage = () => {
 
   // Add useEffect to get query parameter, set active convo ID, and then fetch the conversation attached to it
   useEffect(() => {
-    // fetch the specific conversation
+    // Reset state before fetching new conversation
+    setMood(20);
+    setMessages([]);
+    setButtonText("Feeling cozy");
+    setButtonChanged(false);
+    setIsLoading(true);
 
     fetch(`/conversation/${chatID}`, { method: "GET" })
       .then((response) => {
@@ -152,26 +171,28 @@ export const ChatPage = () => {
   }, [chatID]);
 
   return (
-    <div className="flex flex-col items-center">
+    <div className="flex flex-1 flex-col items-center">
       {/* The entire chat box container */}
       <div
-        className="flex w-full flex-col rounded-3xl border border-stone-200 bg-stone-50 shadow-lg"
+        className="flex flex-col rounded-3xl border border-stone-200 bg-stone-50 shadow-lg max-w-full max-h-[calc(100vh-2rem)]"
         style={{
+          width: `${chatWidth}px`,
           height: `${chatHeight}px`,
-          transition: "height 1.2s cubic-bezier(0.34, 1.56, 0.64, 1)",
+          fontSize: `${chatFontSize}px`,
+          transition: "width 1.2s cubic-bezier(0.34, 1.56, 0.64, 1), height 1.2s cubic-bezier(0.34, 1.56, 0.64, 1), font-size 1.2s cubic-bezier(0.34, 1.56, 0.64, 1)",
         }}
       >
         {/* Header items, title and online indicator */}
         <div className="flex items-center justify-between border-b border-stone-200 px-5 py-3">
           <div className="flex items-center gap-2">
             <Coffee className="h-4 w-4 text-amber-700" />
-            <h1 className="text-base font-semibold text-stone-700 tracking-wide">
+            <h1 className="font-semibold text-stone-700 tracking-wide" style={{ fontSize: '1.15em' }}>
               Cozy Chat
             </h1>
           </div>
           <div className="flex items-center gap-2">
             <div className="h-2 w-2 rounded-full bg-emerald-500" />
-            <span className="text-xs text-stone-400">online</span>
+            <span className="text-stone-400" style={{ fontSize: '0.75em' }}>online</span>
           </div>
         </div>
 
@@ -180,7 +201,7 @@ export const ChatPage = () => {
           {messages.length === 0 && (
             <div className="flex flex-col items-center justify-center mt-16 text-stone-400">
               <Coffee className="h-10 w-10 mb-3 text-stone-300" />
-              <p className="text-sm">Welcome in. Make yourself comfortable.</p>
+              <p>Welcome in. Make yourself comfortable.</p>
             </div>
           )}
           {messages.map((msg, i) => (
@@ -193,7 +214,7 @@ export const ChatPage = () => {
             >
               <div
                 className={cn(
-                  "max-w-[80%] px-4 py-2.5 text-sm leading-relaxed",
+                  "max-w-[80%] px-4 py-2.5 leading-relaxed",
                   msg.role === "user"
                     ? "bg-amber-600 text-white rounded-2xl rounded-br-md"
                     : "bg-white border border-stone-200 text-stone-700 rounded-2xl rounded-bl-md shadow-sm",
@@ -232,7 +253,7 @@ export const ChatPage = () => {
               onChange={(e) => setInput(e.target.value)}
               onKeyDown={(e) => e.key === "Enter" && handleSend()}
               placeholder="Say something..."
-              className="flex-1 rounded-xl border border-stone-200 bg-white px-4 py-2.5 text-sm text-stone-700 placeholder-stone-400 outline-none focus:border-amber-400 focus:ring-2 focus:ring-amber-100 transition-all"
+              className="flex-1 rounded-xl border border-stone-200 bg-white px-4 py-2.5 text-stone-700 placeholder-stone-400 outline-none focus:border-amber-400 focus:ring-2 focus:ring-amber-100 transition-all"
             />
             <button
               onClick={handleSend}
@@ -246,7 +267,13 @@ export const ChatPage = () => {
       </div>
 
       {/* Shimmer button below chat */}
-      <div className={cn("mt-4", buttonChanged && "animate-subtle-pulse")}>
+      <div
+        className={cn(
+          "mt-4 transition-opacity duration-700 ease-in",
+          hasAssistantMessage ? "opacity-100" : "opacity-0 pointer-events-none",
+          buttonChanged && "animate-subtle-pulse"
+        )}
+      >
         <ShimmerButton
           shimmer={buttonChanged}
           onClick={() => console.log("Button clicked:", buttonText)}
