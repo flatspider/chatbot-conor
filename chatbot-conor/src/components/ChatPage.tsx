@@ -32,21 +32,13 @@ function parseCommands(text: string): {
   return { clean: clean.trim(), buttonText, mood };
 }
 
-// TODO: Update and balance these values / names
-function getMoodLabel(value: number): string {
-  if (value < 20) return "Wary";
-  if (value < 40) return "Curious";
-  if (value < 60) return "Warming up";
-  if (value < 80) return "Cozy";
-  return "Best friends";
-}
-
 export const ChatPage = () => {
-  const [error, setError] = useState(null);
+  // Determine proper way to use error
+  const [_error, setError] = useState(null);
   const [input, setInput] = useState("");
   const [messages, setMessages] = useState<Message[]>([]);
   const messagesEndRef = useRef<HTMLDivElement>(null);
-  const [conversation, setConversation] = useState<Conversation | null>(null);
+  const [_conversation, setConversation] = useState<Conversation | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const { chatID } = useParams();
 
@@ -54,51 +46,25 @@ export const ChatPage = () => {
   const [buttonText, setButtonText] = useState("Feeling cozy");
   const [buttonChanged, setButtonChanged] = useState(false);
 
-  // Mood needle state
-  const [mood, setMood] = useState(25);
-  const [dragMood, setDragMood] = useState<number | null>(null);
-  const meterSvgRef = useRef<SVGSVGElement>(null);
-  const isDraggingRef = useRef(false);
-  const displayMood = dragMood ?? mood;
-  const isDragging = dragMood !== null;
-  const needleRotation = -90 + (displayMood / 100) * 180;
+  // Mood state
+  const [mood, setMood] = useState(20);
 
-  /* MOOD METER -------- */
+  // Viewport size for dynamic scaling
+  const [viewportSize, setViewportSize] = useState({ w: window.innerWidth, h: window.innerHeight });
+  useEffect(() => {
+    const onResize = () => setViewportSize({ w: window.innerWidth, h: window.innerHeight });
+    window.addEventListener('resize', onResize);
+    return () => window.removeEventListener('resize', onResize);
+  }, []);
 
-  const getMoodFromPointer = (clientX: number, clientY: number): number => {
-    if (!meterSvgRef.current) return mood;
-    const rect = meterSvgRef.current.getBoundingClientRect();
-    // Map screen coords to SVG viewBox coords (0 0 120 70)
-    const vbX = ((clientX - rect.left) / rect.width) * 120;
-    const vbY = ((clientY - rect.top) / rect.height) * 70;
-    const dx = vbX - 60;
-    const dy = -(vbY - 58); // flip Y since SVG Y goes downward
-    // If pointer is below the gauge center, clamp to nearest edge
-    if (dy < 0) return dx < 0 ? 0 : 100;
-    const angle = Math.atan2(dy, dx);
-    return Math.min(
-      100,
-      Math.max(0, Math.round(((Math.PI - angle) / Math.PI) * 100)),
-    );
-  };
+  // Non-linear (quadratic) chat size based on mood
+  const t = Math.max(0, (mood - 15) / 85);
+  const chatHeight = 300 + Math.pow(t, 2) * (viewportSize.h - 332);
+  const chatWidth = 350 + Math.pow(t, 2) * (viewportSize.w - 382);
+  const chatFontSize = 14 + Math.pow(t, 2) * 6; // 14px → 20px
 
-  const handleMeterPointerDown = (e: React.PointerEvent<SVGSVGElement>) => {
-    e.currentTarget.setPointerCapture(e.pointerId);
-    isDraggingRef.current = true;
-    setDragMood(getMoodFromPointer(e.clientX, e.clientY));
-  };
-
-  const handleMeterPointerMove = (e: React.PointerEvent<SVGSVGElement>) => {
-    if (!isDraggingRef.current) return;
-    setDragMood(getMoodFromPointer(e.clientX, e.clientY));
-  };
-
-  const handleMeterPointerUp = () => {
-    isDraggingRef.current = false;
-    setDragMood(null); // springs back to Claude's mood value
-  };
-
-  /* END MOOD METER ------- */
+  // Button only visible after first AI reply
+  const hasAssistantMessage = messages.some(m => m.role === 'assistant');
 
   // Bring last message into view when loading ends or new message
   useEffect(() => {
@@ -106,8 +72,6 @@ export const ChatPage = () => {
   }, [messages, isLoading]);
 
   const handleSend = async () => {
-    // Do I need to check if null chatID?
-
     if (!input.trim() || isLoading) return;
 
     const userMessage: Message = { role: "user", content: input };
@@ -135,7 +99,7 @@ export const ChatPage = () => {
     if (newButtonText) {
       setButtonText(newButtonText);
       setButtonChanged(true);
-      setTimeout(() => setButtonChanged(false), 2000);
+      setTimeout(() => setButtonChanged(false), 3200);
     }
 
     if (newMood !== null) {
@@ -152,9 +116,14 @@ export const ChatPage = () => {
 
   // Add useEffect to get query parameter, set active convo ID, and then fetch the conversation attached to it
   useEffect(() => {
-    // fetch the specific conversation
+    // Reset state before fetching new conversation
+    setMood(20);
+    setMessages([]);
+    setButtonText("Feeling cozy");
+    setButtonChanged(false);
+    setIsLoading(true);
 
-    const convo = fetch(`/conversation/${chatID}`, { method: "GET" })
+    fetch(`/conversation/${chatID}`, { method: "GET" })
       .then((response) => {
         if (!response.ok) {
           throw new Error(`No conversation found`);
@@ -163,6 +132,34 @@ export const ChatPage = () => {
         }
       })
       .then((json) => {
+        // Clean out messages of button text:
+
+        const rawMessages = json.messages ?? [];
+        let lastMood: number | null = null;
+        let lastButton: string | null = null;
+
+        const cleanedMessages = rawMessages.map((msg: Message) => {
+          if (msg.role === "assistant") {
+            const {
+              clean,
+              mood: newMood,
+              buttonText,
+            } = parseCommands(msg.content);
+            if (newMood !== null) lastMood = newMood;
+            if (buttonText) lastButton = buttonText;
+            return { ...msg, content: clean };
+          }
+          return msg;
+        });
+
+        setMessages(cleanedMessages);
+        if (lastMood !== null) setMood(lastMood);
+        if (lastButton) {
+          setButtonText(lastButton);
+          setButtonChanged(true);
+          setTimeout(() => setButtonChanged(false), 3200);
+        }
+
         setConversation(json);
         setIsLoading(false);
         console.log("convers", json);
@@ -174,20 +171,28 @@ export const ChatPage = () => {
   }, [chatID]);
 
   return (
-    <>
+    <div className="flex flex-1 flex-col items-center">
       {/* The entire chat box container */}
-      <div className="flex h-[600px] flex-col rounded-3xl border border-stone-200 bg-stone-50 shadow-lg">
+      <div
+        className="flex flex-col rounded-3xl border border-stone-200 bg-stone-50 shadow-lg max-w-full max-h-[calc(100vh-2rem)]"
+        style={{
+          width: `${chatWidth}px`,
+          height: `${chatHeight}px`,
+          fontSize: `${chatFontSize}px`,
+          transition: "width 1.2s cubic-bezier(0.34, 1.56, 0.64, 1), height 1.2s cubic-bezier(0.34, 1.56, 0.64, 1), font-size 1.2s cubic-bezier(0.34, 1.56, 0.64, 1)",
+        }}
+      >
         {/* Header items, title and online indicator */}
         <div className="flex items-center justify-between border-b border-stone-200 px-5 py-3">
           <div className="flex items-center gap-2">
             <Coffee className="h-4 w-4 text-amber-700" />
-            <h1 className="text-base font-semibold text-stone-700 tracking-wide">
+            <h1 className="font-semibold text-stone-700 tracking-wide" style={{ fontSize: '1.15em' }}>
               Cozy Chat
             </h1>
           </div>
           <div className="flex items-center gap-2">
             <div className="h-2 w-2 rounded-full bg-emerald-500" />
-            <span className="text-xs text-stone-400">online</span>
+            <span className="text-stone-400" style={{ fontSize: '0.75em' }}>online</span>
           </div>
         </div>
 
@@ -196,7 +201,7 @@ export const ChatPage = () => {
           {messages.length === 0 && (
             <div className="flex flex-col items-center justify-center mt-16 text-stone-400">
               <Coffee className="h-10 w-10 mb-3 text-stone-300" />
-              <p className="text-sm">Welcome in. Make yourself comfortable.</p>
+              <p>Welcome in. Make yourself comfortable.</p>
             </div>
           )}
           {messages.map((msg, i) => (
@@ -209,7 +214,7 @@ export const ChatPage = () => {
             >
               <div
                 className={cn(
-                  "max-w-[80%] px-4 py-2.5 text-sm leading-relaxed",
+                  "max-w-[80%] px-4 py-2.5 leading-relaxed",
                   msg.role === "user"
                     ? "bg-amber-600 text-white rounded-2xl rounded-br-md"
                     : "bg-white border border-stone-200 text-stone-700 rounded-2xl rounded-bl-md shadow-sm",
@@ -248,7 +253,7 @@ export const ChatPage = () => {
               onChange={(e) => setInput(e.target.value)}
               onKeyDown={(e) => e.key === "Enter" && handleSend()}
               placeholder="Say something..."
-              className="flex-1 rounded-xl border border-stone-200 bg-white px-4 py-2.5 text-sm text-stone-700 placeholder-stone-400 outline-none focus:border-amber-400 focus:ring-2 focus:ring-amber-100 transition-all"
+              className="flex-1 rounded-xl border border-stone-200 bg-white px-4 py-2.5 text-stone-700 placeholder-stone-400 outline-none focus:border-amber-400 focus:ring-2 focus:ring-amber-100 transition-all"
             />
             <button
               onClick={handleSend}
@@ -261,91 +266,22 @@ export const ChatPage = () => {
         </div>
       </div>
 
-      {/* Bottom controls: mood meter + release button */}
-      <div className="flex items-start justify-between mt-4 px-2">
-        {/* Mood meter — draggable, bounces back to Claude's value */}
-        <div className="flex flex-col items-center">
-          <svg
-            ref={meterSvgRef}
-            viewBox="0 0 120 70"
-            className={cn(
-              "w-32 select-none",
-              isDragging ? "cursor-grabbing" : "cursor-grab",
-            )}
-            style={{ touchAction: "none" }}
-            onPointerDown={handleMeterPointerDown}
-            onPointerMove={handleMeterPointerMove}
-            onPointerUp={handleMeterPointerUp}
-          >
-            <defs>
-              <linearGradient
-                id="warmth-gradient"
-                x1="0%"
-                y1="0%"
-                x2="100%"
-                y2="0%"
-              >
-                <stop offset="0%" stopColor="#94a3b8" />
-                <stop offset="40%" stopColor="#d97706" />
-                <stop offset="100%" stopColor="#dc2626" />
-              </linearGradient>
-            </defs>
-            {/* Background arc */}
-            <path
-              d="M 15 58 A 45 45 0 0 1 105 58"
-              fill="none"
-              stroke="#e7e5e4"
-              strokeWidth="8"
-              strokeLinecap="round"
-            />
-            {/* Colored arc */}
-            <path
-              d="M 15 58 A 45 45 0 0 1 105 58"
-              fill="none"
-              stroke="url(#warmth-gradient)"
-              strokeWidth="8"
-              strokeLinecap="round"
-              opacity="0.8"
-            />
-            {/* Needle — no transition while dragging, spring bounce on release */}
-            <g
-              style={{
-                transform: `rotate(${needleRotation}deg)`,
-                transformOrigin: "60px 58px",
-                transition: isDragging
-                  ? "none"
-                  : "transform 1.2s cubic-bezier(0.34, 1.56, 0.64, 1)",
-              }}
-            >
-              <line
-                x1="60"
-                y1="58"
-                x2="60"
-                y2="22"
-                stroke="#57534e"
-                strokeWidth="2.5"
-                strokeLinecap="round"
-              />
-            </g>
-            {/* Center dot */}
-            <circle cx="60" cy="58" r="4" fill="#57534e" />
-            <circle cx="60" cy="58" r="2" fill="#fafaf9" />
-          </svg>
-          <span className="text-xs font-medium text-stone-500 -mt-2">
-            {getMoodLabel(displayMood)}
-          </span>
-        </div>
-
-        {/* Release button */}
-        <div className={cn("mt-4", buttonChanged && "animate-subtle-pulse")}>
-          <ShimmerButton
-            onClick={() => console.log("Button clicked:", buttonText)}
-          >
-            {buttonText}
-          </ShimmerButton>
-        </div>
+      {/* Shimmer button below chat */}
+      <div
+        className={cn(
+          "mt-4 transition-opacity duration-700 ease-in",
+          hasAssistantMessage ? "opacity-100" : "opacity-0 pointer-events-none",
+          buttonChanged && "animate-subtle-pulse"
+        )}
+      >
+        <ShimmerButton
+          shimmer={buttonChanged}
+          onClick={() => console.log("Button clicked:", buttonText)}
+        >
+          {buttonText}
+        </ShimmerButton>
       </div>
-    </>
+    </div>
   );
 };
 

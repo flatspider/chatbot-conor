@@ -11,15 +11,14 @@ function App() {
   const [conversations, setConversations] = useState<Conversation[] | null>(
     null,
   );
-  const [error, setError] = useState(null);
-  const [isLoading, setIsLoading] = useState(false);
+  const [_error, setError] = useState(null);
 
   // On render, fetch all conversations from GET /getconversations endpoint
   useEffect(() => {
     // Establish a conversation on page load
     // startNewConversation();
 
-    const convos = fetch("/getconversations")
+    fetch("/getconversations")
       .then((response) => {
         if (!response.ok) {
           throw new Error(`No conversations`);
@@ -29,20 +28,18 @@ function App() {
       })
       .then((json) => {
         setConversations(json);
-        setIsLoading(false);
         console.log("convers", json);
       })
       .catch((err) => {
         setError(err);
-        setIsLoading(false);
       });
   }, []);
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-amber-50 p-4">
-      <div className="relative w-full max-w-lg">
+      <div className="relative w-full">
         {/* Bottom controls: mood meter + release button */}
-        <div className="flex items-start justify-between mt-4 px-2">
+        <div className="flex items-start gap-3 mt-4 px-2">
           {/* Conversations Drawer */}
           <SideBar conversations={conversations} />
           <Outlet />

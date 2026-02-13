@@ -10,4 +10,4 @@ export const auth = betterAuth({
   }),
 });
 
-export default auth;
+
