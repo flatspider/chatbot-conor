@@ -19,7 +19,7 @@ app.use(express.json());
 const anthropic = new Anthropic();
 
 // Auth from BetterAuth
-app.all("/api/auth/*", toNodeHandler(auth));
+app.all("/api/auth/{*splat}", toNodeHandler(auth));
 
 const checkSession = async (req, res, next) => {
   const session = await auth.api.getSession({headers: req.headers});
