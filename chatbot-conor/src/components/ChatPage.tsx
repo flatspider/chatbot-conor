@@ -32,15 +32,6 @@ function parseCommands(text: string): {
   return { clean: clean.trim(), buttonText, mood };
 }
 
-// TODO: Update and balance these values / names
-function getMoodLabel(value: number): string {
-  if (value < 20) return "Wary";
-  if (value < 40) return "Curious";
-  if (value < 60) return "Warming up";
-  if (value < 80) return "Cozy";
-  return "Best friends";
-}
-
 export const ChatPage = () => {
   const [error, setError] = useState(null);
   const [input, setInput] = useState("");
@@ -54,51 +45,11 @@ export const ChatPage = () => {
   const [buttonText, setButtonText] = useState("Feeling cozy");
   const [buttonChanged, setButtonChanged] = useState(false);
 
-  // Mood needle state
-  const [mood, setMood] = useState(25);
-  const [dragMood, setDragMood] = useState<number | null>(null);
-  const meterSvgRef = useRef<SVGSVGElement>(null);
-  const isDraggingRef = useRef(false);
-  const displayMood = dragMood ?? mood;
-  const isDragging = dragMood !== null;
-  const needleRotation = -90 + (displayMood / 100) * 180;
+  // Mood state
+  const [mood, setMood] = useState(20);
 
-  /* MOOD METER -------- */
-
-  const getMoodFromPointer = (clientX: number, clientY: number): number => {
-    if (!meterSvgRef.current) return mood;
-    const rect = meterSvgRef.current.getBoundingClientRect();
-    // Map screen coords to SVG viewBox coords (0 0 120 70)
-    const vbX = ((clientX - rect.left) / rect.width) * 120;
-    const vbY = ((clientY - rect.top) / rect.height) * 70;
-    const dx = vbX - 60;
-    const dy = -(vbY - 58); // flip Y since SVG Y goes downward
-    // If pointer is below the gauge center, clamp to nearest edge
-    if (dy < 0) return dx < 0 ? 0 : 100;
-    const angle = Math.atan2(dy, dx);
-    return Math.min(
-      100,
-      Math.max(0, Math.round(((Math.PI - angle) / Math.PI) * 100)),
-    );
-  };
-
-  const handleMeterPointerDown = (e: React.PointerEvent<SVGSVGElement>) => {
-    e.currentTarget.setPointerCapture(e.pointerId);
-    isDraggingRef.current = true;
-    setDragMood(getMoodFromPointer(e.clientX, e.clientY));
-  };
-
-  const handleMeterPointerMove = (e: React.PointerEvent<SVGSVGElement>) => {
-    if (!isDraggingRef.current) return;
-    setDragMood(getMoodFromPointer(e.clientX, e.clientY));
-  };
-
-  const handleMeterPointerUp = () => {
-    isDraggingRef.current = false;
-    setDragMood(null); // springs back to Claude's mood value
-  };
-
-  /* END MOOD METER ------- */
+  // Dynamic chat height based on mood
+  const chatHeight = mood <= 20 ? 400 : 400 + ((mood - 20) / 80) * 300;
 
   // Bring last message into view when loading ends or new message
   useEffect(() => {
@@ -106,8 +57,6 @@ export const ChatPage = () => {
   }, [messages, isLoading]);
 
   const handleSend = async () => {
-    // Do I need to check if null chatID?
-
     if (!input.trim() || isLoading) return;
 
     const userMessage: Message = { role: "user", content: input };
@@ -135,7 +84,7 @@ export const ChatPage = () => {
     if (newButtonText) {
       setButtonText(newButtonText);
       setButtonChanged(true);
-      setTimeout(() => setButtonChanged(false), 2000);
+      setTimeout(() => setButtonChanged(false), 3200);
     }
 
     if (newMood !== null) {
@@ -185,7 +134,11 @@ export const ChatPage = () => {
 
         setMessages(cleanedMessages);
         if (lastMood !== null) setMood(lastMood);
-        if (lastButton) setButtonText(lastButton);
+        if (lastButton) {
+          setButtonText(lastButton);
+          setButtonChanged(true);
+          setTimeout(() => setButtonChanged(false), 3200);
+        }
 
         setConversation(json);
         setIsLoading(false);
@@ -198,9 +151,15 @@ export const ChatPage = () => {
   }, [chatID]);
 
   return (
-    <>
+    <div className="flex flex-col items-center">
       {/* The entire chat box container */}
-      <div className="flex h-[600px] flex-col rounded-3xl border border-stone-200 bg-stone-50 shadow-lg">
+      <div
+        className="flex w-full flex-col rounded-3xl border border-stone-200 bg-stone-50 shadow-lg"
+        style={{
+          height: `${chatHeight}px`,
+          transition: "height 1.2s cubic-bezier(0.34, 1.56, 0.64, 1)",
+        }}
+      >
         {/* Header items, title and online indicator */}
         <div className="flex items-center justify-between border-b border-stone-200 px-5 py-3">
           <div className="flex items-center gap-2">
@@ -285,91 +244,16 @@ export const ChatPage = () => {
         </div>
       </div>
 
-      {/* Bottom controls: mood meter + release button */}
-      <div className="flex items-start justify-between mt-4 px-2">
-        {/* Mood meter — draggable, bounces back to Claude's value */}
-        <div className="flex flex-col items-center">
-          <svg
-            ref={meterSvgRef}
-            viewBox="0 0 120 70"
-            className={cn(
-              "w-32 select-none",
-              isDragging ? "cursor-grabbing" : "cursor-grab",
-            )}
-            style={{ touchAction: "none" }}
-            onPointerDown={handleMeterPointerDown}
-            onPointerMove={handleMeterPointerMove}
-            onPointerUp={handleMeterPointerUp}
-          >
-            <defs>
-              <linearGradient
-                id="warmth-gradient"
-                x1="0%"
-                y1="0%"
-                x2="100%"
-                y2="0%"
-              >
-                <stop offset="0%" stopColor="#94a3b8" />
-                <stop offset="40%" stopColor="#d97706" />
-                <stop offset="100%" stopColor="#dc2626" />
-              </linearGradient>
-            </defs>
-            {/* Background arc */}
-            <path
-              d="M 15 58 A 45 45 0 0 1 105 58"
-              fill="none"
-              stroke="#e7e5e4"
-              strokeWidth="8"
-              strokeLinecap="round"
-            />
-            {/* Colored arc */}
-            <path
-              d="M 15 58 A 45 45 0 0 1 105 58"
-              fill="none"
-              stroke="url(#warmth-gradient)"
-              strokeWidth="8"
-              strokeLinecap="round"
-              opacity="0.8"
-            />
-            {/* Needle — no transition while dragging, spring bounce on release */}
-            <g
-              style={{
-                transform: `rotate(${needleRotation}deg)`,
-                transformOrigin: "60px 58px",
-                transition: isDragging
-                  ? "none"
-                  : "transform 1.2s cubic-bezier(0.34, 1.56, 0.64, 1)",
-              }}
-            >
-              <line
-                x1="60"
-                y1="58"
-                x2="60"
-                y2="22"
-                stroke="#57534e"
-                strokeWidth="2.5"
-                strokeLinecap="round"
-              />
-            </g>
-            {/* Center dot */}
-            <circle cx="60" cy="58" r="4" fill="#57534e" />
-            <circle cx="60" cy="58" r="2" fill="#fafaf9" />
-          </svg>
-          <span className="text-xs font-medium text-stone-500 -mt-2">
-            {getMoodLabel(displayMood)}
-          </span>
-        </div>
-
-        {/* Release button */}
-        <div className={cn("mt-4", buttonChanged && "animate-subtle-pulse")}>
-          <ShimmerButton
-            onClick={() => console.log("Button clicked:", buttonText)}
-          >
-            {buttonText}
-          </ShimmerButton>
-        </div>
+      {/* Shimmer button below chat */}
+      <div className={cn("mt-4", buttonChanged && "animate-subtle-pulse")}>
+        <ShimmerButton
+          shimmer={buttonChanged}
+          onClick={() => console.log("Button clicked:", buttonText)}
+        >
+          {buttonText}
+        </ShimmerButton>
       </div>
-    </>
+    </div>
   );
 };
 
