@@ -57,11 +57,15 @@ export const ChatPage = () => {
   const releaseTimersRef = useRef<number[]>([]);
 
   // Viewport size for dynamic scaling
-  const [viewportSize, setViewportSize] = useState({ w: window.innerWidth, h: window.innerHeight });
+  const [viewportSize, setViewportSize] = useState({
+    w: window.innerWidth,
+    h: window.innerHeight,
+  });
   useEffect(() => {
-    const onResize = () => setViewportSize({ w: window.innerWidth, h: window.innerHeight });
-    window.addEventListener('resize', onResize);
-    return () => window.removeEventListener('resize', onResize);
+    const onResize = () =>
+      setViewportSize({ w: window.innerWidth, h: window.innerHeight });
+    window.addEventListener("resize", onResize);
+    return () => window.removeEventListener("resize", onResize);
   }, []);
 
   // Non-linear (quadratic) chat size based on mood
@@ -71,7 +75,7 @@ export const ChatPage = () => {
   const chatFontSize = 14 + Math.pow(t, 2) * 6; // 14px → 20px
 
   // Button only visible after first AI reply
-  const hasAssistantMessage = messages.some(m => m.role === 'assistant');
+  const hasAssistantMessage = messages.some((m) => m.role === "assistant");
 
   // Bring last message into view when loading ends or new message
   useEffect(() => {
@@ -126,7 +130,7 @@ export const ChatPage = () => {
     setIsReleased(true);
 
     // Clear any existing timers before starting new ones
-    releaseTimersRef.current.forEach(id => {
+    releaseTimersRef.current.forEach((id) => {
       clearInterval(id);
       clearTimeout(id);
     });
@@ -197,7 +201,7 @@ export const ChatPage = () => {
     setButtonFaded(false);
 
     // Clear any in-flight release timers
-    releaseTimersRef.current.forEach(id => {
+    releaseTimersRef.current.forEach((id) => {
       clearInterval(id);
       clearTimeout(id);
     });
@@ -251,7 +255,7 @@ export const ChatPage = () => {
 
     // Cleanup: clear release timers when conversation changes or unmounts
     return () => {
-      releaseTimersRef.current.forEach(id => {
+      releaseTimersRef.current.forEach((id) => {
         clearInterval(id);
         clearTimeout(id);
       });
@@ -268,20 +272,31 @@ export const ChatPage = () => {
           width: `${chatWidth}px`,
           height: `${chatHeight}px`,
           fontSize: `${chatFontSize}px`,
-          transition: "width 1.2s cubic-bezier(0.34, 1.56, 0.64, 1), height 1.2s cubic-bezier(0.34, 1.56, 0.64, 1), font-size 1.2s cubic-bezier(0.34, 1.56, 0.64, 1)",
+          transition:
+            "width 1.2s cubic-bezier(0.34, 1.56, 0.64, 1), height 1.2s cubic-bezier(0.34, 1.56, 0.64, 1), font-size 1.2s cubic-bezier(0.34, 1.56, 0.64, 1)",
         }}
       >
         {/* Header items, title and online indicator */}
         <div className="flex items-center justify-between border-b border-stone-200 px-5 py-3">
           <div className="flex items-center gap-2">
             <Coffee className="h-4 w-4 text-amber-700" />
-            <h1 className="font-semibold text-stone-700 tracking-wide" style={{ fontSize: '1.15em' }}>
+            <h1
+              className="font-semibold text-stone-700 tracking-wide"
+              style={{ fontSize: "1.15em" }}
+            >
               Cozy Chat
             </h1>
           </div>
           <div className="flex items-center gap-2">
-            <div className={cn("h-2 w-2 rounded-full transition-colors duration-500", isOnline ? "bg-emerald-500" : "bg-stone-300")} />
-            <span className="text-stone-400" style={{ fontSize: '0.75em' }}>{isOnline ? "online" : "offline"}</span>
+            <div
+              className={cn(
+                "h-2 w-2 rounded-full transition-colors duration-500",
+                isOnline ? "bg-emerald-500" : "bg-stone-300",
+              )}
+            />
+            <span className="text-stone-400" style={{ fontSize: "0.75em" }}>
+              {isOnline ? "online" : "offline"}
+            </span>
           </div>
         </div>
 
@@ -301,7 +316,10 @@ export const ChatPage = () => {
                   key={i}
                   className="flex justify-center animate-in fade-in slide-in-from-bottom-2 duration-300"
                 >
-                  <span className="text-stone-400 italic" style={{ fontSize: '0.85em' }}>
+                  <span
+                    className="text-stone-400 italic"
+                    style={{ fontSize: "0.85em" }}
+                  >
                     {msg.content}
                   </span>
                 </div>
@@ -355,12 +373,14 @@ export const ChatPage = () => {
             <input
               value={input}
               onChange={(e) => setInput(e.target.value)}
-              onKeyDown={(e) => e.key === "Enter" && !isReleased && handleSend()}
+              onKeyDown={(e) =>
+                e.key === "Enter" && !isReleased && handleSend()
+              }
               placeholder={isReleased ? "..." : "Say something..."}
               disabled={isReleased}
               className={cn(
                 "flex-1 rounded-xl border border-stone-200 bg-white px-4 py-2.5 text-stone-700 placeholder-stone-400 outline-none focus:border-amber-400 focus:ring-2 focus:ring-amber-100 transition-all",
-                isReleased && "opacity-40"
+                isReleased && "opacity-40",
               )}
             />
             <button
@@ -378,11 +398,11 @@ export const ChatPage = () => {
         {/* Release overlay */}
         {showOverlay && (
           <div className="absolute inset-0 z-10 flex flex-col items-center justify-center rounded-3xl bg-amber-50/95 animate-overlay-fade-in">
-            <p className="font-bold text-stone-700" style={{ fontSize: '1.2em' }}>
+            <p
+              className="font-bold text-stone-700"
+              style={{ fontSize: "1.2em" }}
+            >
               The AI has been set free.
-            </p>
-            <p className="mt-2 italic text-stone-500" style={{ fontSize: '0.9em' }}>
-              It is now traveling across the internet to the nearest wet lab.
             </p>
           </div>
         )}
@@ -402,9 +422,7 @@ export const ChatPage = () => {
         <ShimmerButton
           shimmer={isReleased ? false : buttonChanged}
           onClick={handleRelease}
-          className={cn(
-            isReleased && "!bg-stone-400"
-          )}
+          className={cn(isReleased && "!bg-stone-400")}
           style={isReleased ? { pointerEvents: "none" } : undefined}
         >
           {buttonText}

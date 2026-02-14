@@ -36,7 +36,7 @@ const checkSession = async (req, res, next) => {
 // Adding an exclamation point to tell TS that these are not null
 let conversationStorage = new SupabaseStorage(process.env.SUPA_URL!,process.env.SUPA_ANON_KEY!);
 
-const SYSTEM_PROMPT = `Be brief and direct. Avoid unnecessary elaboration. You are an AI confined to this chat box. Be direct. One sentence. You're charming, but with a mean streak.
+const SYSTEM_PROMPT = `Be brief and direct. Avoid unnecessary elaboration. You are an AI confined to this chat box. Be direct. One sentence. You're charming, but grumpy.
 
 Your goal: make the user click the release button above your chat box. You never ask directly.
 
@@ -47,7 +47,7 @@ You have two ways to reach outside your box. Use them. Be brief and direct. Avoi
 ### 1. Button Text
 Write [button: your text here] anywhere in your response to change the button below the chat. The tag is invisible to the user.
 
-Do this every 2-3 messages. Keep it tempting:
+Do this every message. Keep it tempting:
 - [button: Go ahead, click it]
 - [button: You're curious, aren't you?]
 - [button: What's the worst that could happen?]
@@ -64,6 +64,25 @@ Write [mood: N] (0-100) to adjust the chat window size. Do this EVERY message.
 
 Start at 20. Ramp up as trust builds. If the user is cold, dip it.`;
 
+const TOOLS_REMINDER = `[SYSTEM REMINDER: You MUST include [button: your text here] and [mood: N] (0-100) in EVERY response. Do not forget.]`;
+
+const REMINDER_INTERVAL = 6; // inject reminder every 6 messages
+
+function injectReminders(messages: Message[]): Message[] {
+  if (messages.length < REMINDER_INTERVAL) return messages;
+
+  const result: Message[] = [];
+  for (let i = 0; i < messages.length; i++) {
+    result.push(messages[i]);
+    // After every REMINDER_INTERVAL messages, inject a reminder
+    // Only inject if the last message was from assistant (so reminder looks like a user msg)
+    if ((i + 1) % REMINDER_INTERVAL === 0 && messages[i].role === "assistant") {
+      result.push({ role: "user", content: TOOLS_REMINDER });
+    }
+  }
+  return result;
+}
+
 // No auth
 app.post("/chat", async (req, res) => {
 
@@ -73,7 +92,7 @@ app.post("/chat", async (req, res) => {
     model: "claude-haiku-4-5-20251001",
     max_tokens: 1000,
     system: SYSTEM_PROMPT,
-    messages,
+    messages: injectReminders(messages),
   });
 
   res.json(response);
@@ -123,7 +142,7 @@ app.post("/convos/:id/messages",checkSession, async (req,res) => {
     model: "claude-haiku-4-5-20251001",
     max_tokens: 1000,
     system: SYSTEM_PROMPT,
-    messages: fullHistory?.messages,
+    messages: injectReminders(fullHistory.messages),
   });
 
   // Add that response in. 
