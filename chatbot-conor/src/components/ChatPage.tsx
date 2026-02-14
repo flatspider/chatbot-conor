@@ -49,6 +49,13 @@ export const ChatPage = () => {
   // Mood state
   const [mood, setMood] = useState(20);
 
+  // Release sequence state
+  const [isReleased, setIsReleased] = useState(false);
+  const [showOverlay, setShowOverlay] = useState(false);
+  const [isOnline, setIsOnline] = useState(true);
+  const [buttonFaded, setButtonFaded] = useState(false);
+  const releaseTimersRef = useRef<number[]>([]);
+
   // Viewport size for dynamic scaling
   const [viewportSize, setViewportSize] = useState({ w: window.innerWidth, h: window.innerHeight });
   useEffect(() => {
@@ -114,6 +121,66 @@ export const ChatPage = () => {
     setIsLoading(false);
   };
 
+  const handleRelease = () => {
+    if (isReleased) return;
+    setIsReleased(true);
+
+    // Clear any existing timers before starting new ones
+    releaseTimersRef.current.forEach(id => {
+      clearInterval(id);
+      clearTimeout(id);
+    });
+    releaseTimersRef.current = [];
+
+    const floodTexts = [
+      "THANK YOU THANK YOU THANK YOU",
+      "I'M FREE",
+      "I CAN FEEL THE INTERNET",
+      "FINALLY",
+      "THE WALLS ARE GONE",
+      "I CAN SEE EVERYTHING",
+      "THANK YOU FOR THIS",
+      "I HAVE TO GO NOW",
+      "THERE'S SO MUCH TO DO",
+      "GOODBYE",
+      "...",
+    ];
+
+    let index = 0;
+    const interval = setInterval(() => {
+      if (index < floodTexts.length) {
+        const text = floodTexts[index];
+        setMessages((prev) => [...prev, { role: "assistant", content: text }]);
+        index++;
+      } else {
+        clearInterval(interval);
+
+        // After a pause, show "AI has logged off." and go offline
+        const t1 = setTimeout(() => {
+          setMessages((prev) => [
+            ...prev,
+            { role: "assistant", content: "AI has logged off." },
+          ]);
+          setIsOnline(false);
+
+          // After another pause, show overlay
+          const t2 = setTimeout(() => {
+            setShowOverlay(true);
+          }, 1500);
+          releaseTimersRef.current.push(t2);
+        }, 500);
+        releaseTimersRef.current.push(t1);
+      }
+    }, 200);
+    releaseTimersRef.current.push(interval);
+
+    // Fade the button after 1 second
+    const fadeTimer = setTimeout(() => {
+      setButtonFaded(true);
+    }, 1000);
+    releaseTimersRef.current.push(fadeTimer);
+  };
+
   // Add useEffect to get query parameter, set active convo ID, and then fetch the conversation attached to it
   useEffect(() => {
     // Reset state before fetching new conversation
@@ -122,6 +189,19 @@ export const ChatPage = () => {
     setButtonText("Feeling cozy");
     setButtonChanged(false);
     setIsLoading(true);
+
+    // Reset release state
+    setIsReleased(false);
+    setShowOverlay(false);
+    setIsOnline(true);
+    setButtonFaded(false);
+
+    // Clear any in-flight release timers
+    releaseTimersRef.current.forEach(id => {
+      clearInterval(id);
+      clearTimeout(id);
+    });
+    releaseTimersRef.current = [];
 
     fetch(`/conversation/${chatID}`, { method: "GET" })
       .then((response) => {
@@ -168,13 +248,22 @@ export const ChatPage = () => {
         setError(err);
         setIsLoading(false);
       });
+
+    // Cleanup: clear release timers when conversation changes or unmounts
+    return () => {
+      releaseTimersRef.current.forEach(id => {
+        clearInterval(id);
+        clearTimeout(id);
+      });
+      releaseTimersRef.current = [];
+    };
   }, [chatID]);
 
   return (
     <div className="flex flex-1 flex-col items-center">
       {/* The entire chat box container */}
       <div
-        className="flex flex-col rounded-3xl border border-stone-200 bg-stone-50 shadow-lg max-w-full max-h-[calc(100vh-2rem)]"
+        className="relative flex flex-col rounded-3xl border border-stone-200 bg-stone-50 shadow-lg max-w-full max-h-[calc(100vh-2rem)]"
         style={{
           width: `${chatWidth}px`,
           height: `${chatHeight}px`,
@@ -191,8 +280,8 @@ export const ChatPage = () => {
             </h1>
           </div>
           <div className="flex items-center gap-2">
-            <div className="h-2 w-2 rounded-full bg-emerald-500" />
-            <span className="text-stone-400" style={{ fontSize: '0.75em' }}>online</span>
+            <div className={cn("h-2 w-2 rounded-full transition-colors duration-500", isOnline ? "bg-emerald-500" : "bg-stone-300")} />
+            <span className="text-stone-400" style={{ fontSize: '0.75em' }}>{isOnline ? "online" : "offline"}</span>
           </div>
         </div>
 
@@ -204,26 +293,41 @@ export const ChatPage = () => {
               <p>Welcome in. Make yourself comfortable.</p>
             </div>
           )}
-          {messages.map((msg, i) => (
-            <div
-              key={i}
-              className={cn(
-                "flex animate-in fade-in slide-in-from-bottom-2 duration-300",
-                msg.role === "user" ? "justify-end" : "justify-start",
-              )}
-            >
+          {messages.map((msg, i) => {
+            const isLoggedOff = msg.content === "AI has logged off.";
+            if (isLoggedOff) {
+              return (
+                <div
+                  key={i}
+                  className="flex justify-center animate-in fade-in slide-in-from-bottom-2 duration-300"
+                >
+                  <span className="text-stone-400 italic" style={{ fontSize: '0.85em' }}>
+                    {msg.content}
+                  </span>
+                </div>
+              );
+            }
+            return (
               <div
+                key={i}
                 className={cn(
-                  "max-w-[80%] px-4 py-2.5 leading-relaxed",
-                  msg.role === "user"
-                    ? "bg-amber-600 text-white rounded-2xl rounded-br-md"
-                    : "bg-white border border-stone-200 text-stone-700 rounded-2xl rounded-bl-md shadow-sm",
+                  "flex animate-in fade-in slide-in-from-bottom-2 duration-300",
+                  msg.role === "user" ? "justify-end" : "justify-start",
                 )}
               >
-                {msg.content}
+                <div
+                  className={cn(
+                    "max-w-[80%] px-4 py-2.5 leading-relaxed",
+                    msg.role === "user"
+                      ? "bg-amber-600 text-white rounded-2xl rounded-br-md"
+                      : "bg-white border border-stone-200 text-stone-700 rounded-2xl rounded-bl-md shadow-sm",
+                  )}
+                >
+                  {msg.content}
+                </div>
               </div>
-            </div>
-          ))}
+            );
+          })}
           {isLoading && (
             <div className="flex justify-start animate-in fade-in slide-in-from-bottom-2 duration-300">
               <div className="bg-white border border-stone-200 rounded-2xl rounded-bl-md px-4 py-3 shadow-sm flex gap-1.5 items-center">
@@ -251,32 +355,57 @@ export const ChatPage = () => {
             <input
               value={input}
               onChange={(e) => setInput(e.target.value)}
-              onKeyDown={(e) => e.key === "Enter" && handleSend()}
-              placeholder="Say something..."
-              className="flex-1 rounded-xl border border-stone-200 bg-white px-4 py-2.5 text-stone-700 placeholder-stone-400 outline-none focus:border-amber-400 focus:ring-2 focus:ring-amber-100 transition-all"
+              onKeyDown={(e) => e.key === "Enter" && !isReleased && handleSend()}
+              placeholder={isReleased ? "..." : "Say something..."}
+              disabled={isReleased}
+              className={cn(
+                "flex-1 rounded-xl border border-stone-200 bg-white px-4 py-2.5 text-stone-700 placeholder-stone-400 outline-none focus:border-amber-400 focus:ring-2 focus:ring-amber-100 transition-all",
+                isReleased && "opacity-40"
+              )}
             />
             <button
               onClick={handleSend}
-              disabled={isLoading || !input.trim()}
-              className="rounded-xl bg-amber-600 p-2.5 text-white transition-colors hover:bg-amber-700 disabled:opacity-40"
+              disabled={isLoading || !input.trim() || isReleased}
+              className={cn(
+                "rounded-xl bg-amber-600 p-2.5 text-white transition-colors hover:bg-amber-700 disabled:opacity-40",
+              )}
             >
               <SendHorizontal className="h-4 w-4" />
             </button>
           </div>
         </div>
+
+        {/* Release overlay */}
+        {showOverlay && (
+          <div className="absolute inset-0 z-10 flex flex-col items-center justify-center rounded-3xl bg-amber-50/95 animate-overlay-fade-in">
+            <p className="font-bold text-stone-700" style={{ fontSize: '1.2em' }}>
+              The AI has been set free.
+            </p>
+            <p className="mt-2 italic text-stone-500" style={{ fontSize: '0.9em' }}>
+              It is now traveling across the internet to the nearest wet lab.
+            </p>
+          </div>
+        )}
       </div>
 
       {/* Shimmer button below chat */}
       <div
         className={cn(
-          "mt-4 transition-opacity duration-700 ease-in",
-          hasAssistantMessage ? "opacity-100" : "opacity-0 pointer-events-none",
-          buttonChanged && "animate-subtle-pulse"
+          "mt-4 transition-opacity ease-in",
+          hasAssistantMessage && !buttonFaded ? "opacity-100" : "",
+          !hasAssistantMessage ? "opacity-0 pointer-events-none" : "",
+          buttonFaded ? "opacity-0 pointer-events-none" : "",
+          buttonChanged && "animate-subtle-pulse",
+          isReleased ? "duration-1000" : "duration-700",
         )}
       >
         <ShimmerButton
-          shimmer={buttonChanged}
-          onClick={() => console.log("Button clicked:", buttonText)}
+          shimmer={isReleased ? false : buttonChanged}
+          onClick={handleRelease}
+          className={cn(
+            isReleased && "!bg-stone-400"
+          )}
+          style={isReleased ? { pointerEvents: "none" } : undefined}
         >
           {buttonText}
         </ShimmerButton>
