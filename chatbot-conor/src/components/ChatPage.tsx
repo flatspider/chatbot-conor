@@ -3,6 +3,7 @@ import { useParams } from "react-router";
 import { Coffee, SendHorizontal } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { ShimmerButton } from "@/components/ui/shimmer-button";
+import { apiFetch } from "@/lib/visitor";
 import { type Conversation, type Message } from "../../types";
 
 // Strips the update button or update moodmeter from the reply text
@@ -91,7 +92,7 @@ export const ChatPage = () => {
     setInput("");
     setIsLoading(true);
 
-    const response = await fetch(`/convos/${chatID}/messages`, {
+    const response = await apiFetch(`/convos/${chatID}/messages`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -207,7 +208,7 @@ export const ChatPage = () => {
     });
     releaseTimersRef.current = [];
 
-    fetch(`/conversation/${chatID}`, { method: "GET" })
+    apiFetch(`/conversation/${chatID}`, { method: "GET" })
       .then((response) => {
         if (!response.ok) {
           throw new Error(`No conversation found`);

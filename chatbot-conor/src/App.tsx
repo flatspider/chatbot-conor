@@ -4,6 +4,7 @@ import { Outlet } from "react-router";
 import { SideBar } from "./components/SideBar";
 
 import { type Conversation } from "../types";
+import { apiFetch } from "./lib/visitor";
 import "./App.css";
 
 function App() {
@@ -18,7 +19,7 @@ function App() {
     // Establish a conversation on page load
     // startNewConversation();
 
-    fetch("/getconversations")
+    apiFetch("/getconversations")
       .then((response) => {
         if (!response.ok) {
           throw new Error(`No conversations`);

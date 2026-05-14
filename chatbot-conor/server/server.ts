@@ -8,8 +8,6 @@ import { SupabaseStorage } from "./storage.ts"
 
 
 import type { UUID } from "node:crypto";
-import {auth } from "../auth.ts"
-import {toNodeHandler} from "better-auth/node"
 
 const PORT = Number(process.env.PORT) || 3000;
 
@@ -18,19 +16,14 @@ app.use(express.json());
 
 const anthropic = new Anthropic();
 
-// Auth from BetterAuth
-app.all("/api/auth/{*splat}", toNodeHandler(auth));
-
-const checkSession = async (req, res, next) => {
-  const session = await auth.api.getSession({headers: req.headers});
-  if (!session) {
-      res.status(401).json({ error: "Not authenticated" });
-      return;
-  } else {
-    (req as any).user = session.user;
-    next();
+const getVisitorId = (req: express.Request, res: express.Response): string | null => {
+  const visitorId = req.header("x-visitor-id");
+  if (!visitorId) {
+    res.status(400).json({ error: "Missing x-visitor-id header" });
+    return null;
   }
-} 
+  return visitorId;
+};
 
 // Supabase needs env key
 // Adding an exclamation point to tell TS that these are not null
@@ -83,7 +76,6 @@ function injectReminders(messages: Message[]): Message[] {
   return result;
 }
 
-// No auth
 app.post("/chat", async (req, res) => {
 
   const { messages } = req.body;
@@ -98,36 +90,27 @@ app.post("/chat", async (req, res) => {
   res.json(response);
 });
 
-// Creates convo and returns single valid UUID
-
-// USERID added
-app.post("/createconversation",checkSession, async (req,res)=>{
-  const userID = (req as any).user.id;
-  let response = await conversationStorage.createConversation(userID);
+app.post("/createconversation", async (req, res) => {
+  const visitorId = getVisitorId(req, res);
+  if (!visitorId) return;
+  let response = await conversationStorage.createConversation(visitorId);
   res.json(response);
 });
 
-// Returns all conversations in array
-// USERID added
-app.get("/getconversations", checkSession, async (req,res)=>{
-  const userID = (req as any).user.id;
-  let response = await conversationStorage.getConversations(userID);
+app.get("/getconversations", async (req, res) => {
+  const visitorId = getVisitorId(req, res);
+  if (!visitorId) return;
+  let response = await conversationStorage.getConversations(visitorId);
   res.json(response);
-})
+});
 
-// USER ID...get single conversation
-app.get("/conversation/:id",checkSession, async (req,res)=> {
+app.get("/conversation/:id", async (req, res) => {
   let targetID = req.params.id as UUID;
   let response = await conversationStorage.getConversation(targetID);
   res.json(response);
-})
+});
 
-//addMessage..and getConversation need userID
-app.post("/convos/:id/messages",checkSession, async (req,res) => {
-  const userID = (req as any).user.id;
-
-  // I probably expect my messages to be a Conversation type
-  // If it's just a message...and then I have the ID from the URL. 
+app.post("/convos/:id/messages", async (req, res) => {
   const {message} = req.body;
   const convoID = req.params.id as UUID;
 
@@ -145,9 +128,6 @@ app.post("/convos/:id/messages",checkSession, async (req,res) => {
     messages: injectReminders(fullHistory.messages),
   });
 
-  // Add that response in. 
-  // Need to manage the response. Create the message type
-
   if(response.content[0].type === "text") {
     const aiMessage: Message = {
       content: response.content[0]?.text,
@@ -157,9 +137,8 @@ app.post("/convos/:id/messages",checkSession, async (req,res) => {
 
   }
 
-  }   
+  }
 
-  //Now send over that conversation
   let response = await conversationStorage.getConversation(convoID)
 
   res.json(response);
