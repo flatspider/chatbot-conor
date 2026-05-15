@@ -22,9 +22,9 @@ export const SideBar = (props: { conversations: Conversation[] | null }) => {
       {/* Conversations Drawer */}
       <Drawer direction="left">
         <DrawerTrigger asChild>
-          <button className="flex items-center gap-2 rounded-xl bg-amber-600 px-4 py-2.5 text-sm font-medium text-white transition-colors hover:bg-amber-700 [writing-mode:vertical-lr]">
+          <button className="flex items-center gap-2 rounded-xl bg-amber-600 p-2.5 text-sm font-medium text-white transition-colors hover:bg-amber-700 md:px-4 md:[writing-mode:vertical-lr]">
             <MessageSquare className="h-4 w-4" />
-            conversations
+            <span className="hidden md:inline">conversations</span>
           </button>
         </DrawerTrigger>
         <DrawerContent>

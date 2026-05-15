@@ -71,8 +71,13 @@ export const ChatPage = () => {
 
   // Non-linear (quadratic) chat size based on mood
   const t = Math.max(0, (mood - 15) / 85);
-  const chatHeight = 300 + Math.pow(t, 2) * (viewportSize.h - 332);
-  const chatWidth = 350 + Math.pow(t, 2) * (viewportSize.w - 382);
+  const isMobile = viewportSize.w < 768;
+  const chatHeight = isMobile
+    ? viewportSize.h - 160
+    : 300 + Math.pow(t, 2) * (viewportSize.h - 332);
+  const chatWidth = isMobile
+    ? viewportSize.w - 32
+    : 350 + Math.pow(t, 2) * (viewportSize.w - 382);
   const chatFontSize = 14 + Math.pow(t, 2) * 6; // 14px → 20px
 
   // Button only visible after first AI reply
