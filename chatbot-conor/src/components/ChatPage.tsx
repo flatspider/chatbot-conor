@@ -3,6 +3,7 @@ import { useParams } from "react-router";
 import { Coffee, SendHorizontal } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { ShimmerButton } from "@/components/ui/shimmer-button";
+import { apiFetch } from "@/lib/visitor";
 import { type Conversation, type Message } from "../../types";
 
 // Strips the update button or update moodmeter from the reply text
@@ -70,8 +71,13 @@ export const ChatPage = () => {
 
   // Non-linear (quadratic) chat size based on mood
   const t = Math.max(0, (mood - 15) / 85);
-  const chatHeight = 300 + Math.pow(t, 2) * (viewportSize.h - 332);
-  const chatWidth = 350 + Math.pow(t, 2) * (viewportSize.w - 382);
+  const isMobile = viewportSize.w < 768;
+  const chatHeight = isMobile
+    ? viewportSize.h - 160
+    : 300 + Math.pow(t, 2) * (viewportSize.h - 332);
+  const chatWidth = isMobile
+    ? viewportSize.w - 32
+    : 350 + Math.pow(t, 2) * (viewportSize.w - 382);
   const chatFontSize = 14 + Math.pow(t, 2) * 6; // 14px → 20px
 
   // Button only visible after first AI reply
@@ -91,7 +97,7 @@ export const ChatPage = () => {
     setInput("");
     setIsLoading(true);
 
-    const response = await fetch(`/convos/${chatID}/messages`, {
+    const response = await apiFetch(`/convos/${chatID}/messages`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -207,7 +213,7 @@ export const ChatPage = () => {
     });
     releaseTimersRef.current = [];
 
-    fetch(`/conversation/${chatID}`, { method: "GET" })
+    apiFetch(`/conversation/${chatID}`, { method: "GET" })
       .then((response) => {
         if (!response.ok) {
           throw new Error(`No conversation found`);

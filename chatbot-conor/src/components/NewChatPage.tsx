@@ -1,11 +1,12 @@
 import { useEffect } from "react";
 import { useNavigate } from "react-router";
+import { apiFetch } from "@/lib/visitor";
 
 export const NewChatPage = () => {
   const navigate = useNavigate();
 
   useEffect(() => {
-    fetch("/createconversation", { method: "POST" })
+    apiFetch("/createconversation", { method: "POST" })
       .then((res) => res.json())
       .then((conversationId) => {
         navigate(`/chat/${conversationId}`, { replace: true });

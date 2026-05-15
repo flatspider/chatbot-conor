@@ -4,6 +4,7 @@ import { Outlet } from "react-router";
 import { SideBar } from "./components/SideBar";
 
 import { type Conversation } from "../types";
+import { apiFetch } from "./lib/visitor";
 import "./App.css";
 
 function App() {
@@ -18,7 +19,7 @@ function App() {
     // Establish a conversation on page load
     // startNewConversation();
 
-    fetch("/getconversations")
+    apiFetch("/getconversations")
       .then((response) => {
         if (!response.ok) {
           throw new Error(`No conversations`);
@@ -39,9 +40,11 @@ function App() {
     <div className="flex min-h-screen items-center justify-center bg-amber-50 p-4">
       <div className="relative w-full">
         {/* Bottom controls: mood meter + release button */}
-        <div className="flex items-start gap-3 mt-4 px-2">
+        <div className="mt-4 px-2 md:flex md:items-start md:gap-3">
           {/* Conversations Drawer */}
-          <SideBar conversations={conversations} />
+          <div className="fixed bottom-4 left-4 z-20 md:static">
+            <SideBar conversations={conversations} />
+          </div>
           <Outlet />
         </div>
       </div>
